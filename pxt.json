@@ -1,0 +1,34 @@
+{
+    "name": "affine",
+    "description": "",
+    "dependencies": {
+        "device": "*"
+    },
+    "files": [
+        "main.blocks",
+        "main.ts",
+        "README.md",
+        "assets.json",
+        "transform.ts",
+        "math.ts",
+        "scene.ts",
+        "screen.ts",
+        "animation.ts",
+        "easing.ts",
+        "thing.ts",
+        "sprite.ts",
+        "gpu.ts",
+        "bounds.ts"
+    ],
+    "testFiles": [
+        "test.ts"
+    ],
+    "targetVersions": {
+        "target": "1.5.24",
+        "targetId": "arcade"
+    },
+    "supportedTargets": [
+        "arcade"
+    ],
+    "preferredEditor": "tsprj"
+}
