@@ -7,6 +7,7 @@ namespace affine {
 
     export class Scene {
         public static SCENE_OFFSET = Screen.SCREEN_HALF_SIZE;
+        private static mgr_: SceneManager;
         private xfrm_: Transform;
         private color_: number;
 
@@ -16,6 +17,8 @@ namespace affine {
         //% blockCombine block="color" callInDebugger
         public get color() { return this.color_; }
         public set color(v) { this.color_ = v; }
+
+        private static _staticInit = (() => Scene.mgr_ = new SceneManager())();
 
         constructor() {
             this.xfrm_ = new Transform();
@@ -67,9 +70,16 @@ namespace affine {
             });
             control.eventContext().registerFrameHandler(SCREEN_PRIORITY, control.__screen.update);
         }
+
+        // SceneManager API
+
+        public static currScene() { return Scene.mgr_.currScene(); }
+        public static replaceScene(scene: Scene) { Scene.mgr_.replaceScene(scene); }
+        public static pushScene(scene: Scene) { Scene.mgr_.pushScene(scene); }
+        public static popScene() { Scene.mgr_.popScene(); }
     }
 
-    export class SceneManager {
+    class SceneManager {
         private scenes: Scene[];
 
         constructor() {
