@@ -63,7 +63,7 @@ namespace affine {
             });
             control.eventContext().registerFrameHandler(GPU_PRIORITY, () => {
                 screen.fill(this.color_);
-                //Gpu.exec();
+                Gpu.exec();
             });
             control.eventContext().registerFrameHandler(SCREEN_PRIORITY, control.__screen.update);
         }
