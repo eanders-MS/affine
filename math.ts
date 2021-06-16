@@ -96,14 +96,12 @@ namespace affine {
         public dirty: boolean;
         public readonly: boolean;
 
-        //% blockCombine block="x" callInDebugger
         public get x() { return this.x_; }
         public set x(v: Fx8) {
             if (this.readonly) throw "hey";
             this.x_ = v;
             this.dirty = true;
         }
-        //% blockCombine block="y" callInDebugger
         public get y() { return this.y_; }
         public set y(v: Fx8) {
             if (this.readonly) throw "hey";
@@ -111,10 +109,8 @@ namespace affine {
             this.dirty = true;
         }
 
-        //% blockCombine block="u" callInDebugger
         public get u() { return this.x_; }
         public set u(n) { this.x = n; }
-        //% blockCombine block="v" callInDebugger
         public get v() { return this.y_; }
         public set v(n) { this.y = n; }
 

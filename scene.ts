@@ -11,10 +11,7 @@ namespace affine {
         private xfrm_: Transform;
         private color_: number;
 
-        //public static get image() { return Scene.image_; }
-        //% blockCombine block="xfrm" callInDebugger
         public get xfrm() { return this.xfrm_; }
-        //% blockCombine block="color" callInDebugger
         public get color() { return this.color_; }
         public set color(v) { this.color_ = v; }
 

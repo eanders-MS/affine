@@ -14,57 +14,48 @@ namespace affine {
         private worldScl_: Fx8;
         public tag: string;
 
-        //% blockCombine block="dirty" callInDebugger
         public get dirty(): boolean {
             return this.dirty_ || this.localPos_.dirty || (this.parent && this.parent.dirty);
         }
 
-        //% blockCombine block="worldPos" callInDebugger
         public get worldPos() {
             if (this.dirty) { this.recalc(); }
             //return new Vec2(this.world_.m[2], this.world_.m[5]);
             return this.worldPos_;
         }
-        //% blockCombine block="worldRot" callInDebugger
         public get worldRot() {
             if (this.dirty) { this.recalc(); }
             return this.worldRot_;
         }
-        //% blockCombine block="worldScl" callInDebugger
         public get worldScl() {
             if (this.dirty) { this.recalc(); }
             return this.worldScl_;
         }
 
-        //% blockCombine block="localPos" callInDebugger
         public get localPos(): Vec2 { return this.localPos_; }
         public set localPos(v: Vec2) {
             this.localPos_.copyFrom(v);
             this.dirty_ = true;
         }
 
-        //% blockCombine block="localRot" callInDebugger
         public get localRot() { return this.localRot_; }
         public set localRot(v: number) {
             this.localRot_ = v;
             this.dirty_ = true;
         }
 
-        //% blockCombine block="localScl" callInDebugger
         public get localScl() { return this.localScl_; }
         public set localScl(v: Fx8) {
             this.localScl_ = v;
             this.dirty_ = true;
         }
 
-        //% blockCombine block="parent" callInDebugger
         public get parent() { return this.parent_; }
         public set parent(p: Transform) {
             this.parent_ = p;
             this.dirty_ = true;
         }
 
-        //% blockCombine block="root" callInDebugger
         public get root() {
             let node = this.parent;
             while (node && node.parent) {
