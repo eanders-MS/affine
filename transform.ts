@@ -98,9 +98,9 @@ namespace affine {
                     this.worldRot_ = prot + this.localRot_;
                     // Yes, I know I *could* use a matrix for this.
                     // I'm lazy and don't want to make a Mat3x3 class.
-                    Vec2.ScaleToRef(this.localPos, this.worldScl_, this.worldPos_);
-                    Vec2.RotateToRef(this.worldPos_, this.parent.worldRot, this.worldPos_);
+                    Vec2.RotateToRef(this.localPos, this.parent.worldRot, this.worldPos_);
                     Vec2.TranslateToRef(this.worldPos_, ppos, this.worldPos_);
+                    Vec2.ScaleToRef(this.worldPos_, this.worldScl_, this.worldPos_);
                 } else {
                     this.worldScl_ = this.localScl_;
                     this.worldRot_ = this.localRot_;
