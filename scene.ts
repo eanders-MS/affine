@@ -65,15 +65,17 @@ namespace affine {
                 screen.fill(this.color_);
                 Gpu.exec();
             });
-            control.eventContext().registerFrameHandler(SCREEN_PRIORITY, control.__screen.update);
+            control.eventContext().registerFrameHandler(SCREEN_PRIORITY, () => {
+                control.__screen.update();
+            });
         }
 
         // SceneManager API
 
-        public static currScene() { return Scene.mgr_.currScene(); }
-        public static replaceScene(scene: Scene) { Scene.mgr_.replaceScene(scene); }
-        public static pushScene(scene: Scene) { Scene.mgr_.pushScene(scene); }
-        public static popScene() { Scene.mgr_.popScene(); }
+        public static currScene(add = false): Scene { return Scene.mgr_.currScene(); }
+        public static replaceScene(scene: Scene): Scene { return Scene.mgr_.replaceScene(scene); }
+        public static pushScene(scene: Scene): Scene { return Scene.mgr_.pushScene(scene); }
+        public static popScene(): Scene { return Scene.mgr_.popScene(); }
     }
 
     class SceneManager {
@@ -83,21 +85,23 @@ namespace affine {
             this.scenes = [];
         }
 
-        public currScene() {
+        public currScene(add = false): Scene {
             if (this.scenes.length) {
                 return this.scenes[this.scenes.length - 1];
+            } else if (add) {
+                return this.pushScene(new Scene());
             }
             return undefined;
         }
 
-        public replaceScene(scene: Scene) {
+        public replaceScene(scene: Scene): Scene {
             if (this.scenes.length) {
                 this.popScene();
             }
-            this.pushScene(scene);
+            return this.pushScene(scene);
         }
 
-        public pushScene(scene: Scene) {
+        public pushScene(scene: Scene): Scene {
             const currScene = this.currScene();
             if (currScene) {
                 currScene.deactivate();
@@ -107,9 +111,10 @@ namespace affine {
             scene.__init();
             scene.startup();
             scene.activate();
+            return scene;
         }
 
-        public popScene() {
+        public popScene(): Scene {
             const prevScene = this.scenes.pop();
             if (prevScene) {
                 prevScene.deactivate();
@@ -120,6 +125,7 @@ namespace affine {
             if (currScene) {
                 currScene.activate();
             }
+            return currScene;
         }
     }
 }
