@@ -72,7 +72,7 @@ namespace affine {
 
         // SceneManager API
 
-        public static currScene(add = false): Scene { return Scene.mgr_.currScene(); }
+        public static currScene(add = false): Scene { return Scene.mgr_.currScene(add); }
         public static replaceScene(scene: Scene): Scene { return Scene.mgr_.replaceScene(scene); }
         public static pushScene(scene: Scene): Scene { return Scene.mgr_.pushScene(scene); }
         public static popScene(): Scene { return Scene.mgr_.popScene(); }
