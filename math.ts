@@ -8,6 +8,11 @@ namespace affine {
         public static sign(v: Fx8): Fx8 {
             return v >= Fx.zeroFx8 ? Fx.oneFx8 : Fx8(-1);
         }
+        public static signum(v: Fx8): Fx8 {
+            if (v > Fx.zeroFx8) return Fx.oneFx8;
+            if (v < Fx.zeroFx8) return fx.negOneFx8;
+            return Fx.zeroFx8;
+        }
         public static clamp(v: Fx8, min: Fx8, max: Fx8): Fx8 {
             return Fx.max(min, Fx.min(v, max));
         }
@@ -272,6 +277,12 @@ namespace affine {
         public static SignToRef(v: Vec2, ref: Vec2): Vec2 {
             ref.x = fx.sign(v.x);
             ref.y = fx.sign(v.y);
+            return ref;
+        }
+
+        public static SignumToRef(v: Vec2, ref: Vec2): Vec2 {
+            ref.x = fx.signum(v.x);
+            ref.y = fx.signum(v.y);
             return ref;
         }
 

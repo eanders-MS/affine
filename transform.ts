@@ -6,12 +6,12 @@ namespace affine {
     export class Transform {
         private localPos_: Vec2;
         private localRot_: number;
-        private localScl_: Fx8;
+        private localScl_: Vec2;
         private parent_: Transform;
         private dirty_: boolean;
         private worldPos_: Vec2;
         private worldRot_: number;
-        private worldScl_: Fx8;
+        private worldScl_: Vec2;
         public tag: string;
 
         public get dirty(): boolean {
@@ -45,8 +45,8 @@ namespace affine {
         }
 
         public get localScl() { return this.localScl_; }
-        public set localScl(v: Fx8) {
-            this.localScl_ = v;
+        public set localScl(v: Vec2) {
+            this.localScl.copyFrom(v);
             this.dirty_ = true;
         }
 
@@ -67,17 +67,17 @@ namespace affine {
         constructor() {
             this.localPos_ = new Vec2();
             this.localRot_ = 0;
-            this.localScl_ = Fx.oneFx8;
+            this.localScl_ = new Vec2(Fx.oneFx8, Fx.oneFx8);
             this.worldPos_ = new Vec2();
             this.worldRot_ = 0;
-            this.worldScl_ = Fx.oneFx8;
+            this.worldScl_ = new Vec2(Fx.oneFx8, Fx.oneFx8);
             this.dirty_ = true;
         }
 
         public copyFrom(src: Transform): this {
             this.localPos.copyFrom(src.localPos);
             this.localRot = src.localRot;
-            this.localScl = src.localScl;
+            this.localScl.copyFrom(src.localScl);
             return this;
         }
 
@@ -94,23 +94,23 @@ namespace affine {
                     const ppos = this.parent.worldPos;
                     const prot = this.parent.worldRot;
                     const pscl = this.parent.worldScl;
-                    this.worldScl_ = Fx.mul(this.localScl, pscl);
+                    Vec2.MulToRef(this.localScl, pscl, this.worldScl_);
                     this.worldRot_ = prot + this.localRot_;
                     // Yes, I know I *could* use a matrix for this.
                     // I'm lazy and don't want to make a Mat3x3 class.
-                    Vec2.ScaleToRef(this.localPos, this.worldScl_, this.worldPos_);
+                    Vec2.MulToRef(this.localPos, this.worldScl_, this.worldPos_);
                     Vec2.RotateToRef(this.worldPos_, this.parent.worldRot, this.worldPos_);
                     Vec2.TranslateToRef(this.worldPos_, ppos, this.worldPos_);
                 } else {
                     this.worldScl_ = this.localScl_;
                     this.worldRot_ = this.localRot_;
-                    Vec2.ScaleToRef(this.localPos, this.worldScl_, this.worldPos_);
+                    Vec2.MulToRef(this.localPos, this.worldScl_, this.worldPos_);
                 }
             }
         }
 
         public transformToRef(v: Vec2, ref: Vec2): Vec2 {
-            Vec2.ScaleToRef(v, this.worldScl, ref);
+            Vec2.MulToRef(v, this.worldScl, ref);
             Vec2.RotateToRef(ref, this.worldRot, ref);
             Vec2.TranslateToRef(ref, this.worldPos, ref);
             return ref;
