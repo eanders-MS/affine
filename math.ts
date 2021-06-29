@@ -1,102 +1,110 @@
-namespace affine {
+namespace affine.math {
+    export function signum(v: number): number {
+        if (v > 0) return 1;
+        if (v < 0) return -1;
+        return 0;
+    }
+}
+
+namespace affine.fx {
+    export const negOneFx8 = Fx8(-1);
+
+    export function sign(v: Fx8): Fx8 {
+        return v >= Fx.zeroFx8 ? Fx.oneFx8 : Fx8(-1);
+    }
+    export function signum(v: Fx8): Fx8 {
+        if (v > Fx.zeroFx8) return Fx.oneFx8;
+        if (v < Fx.zeroFx8) return fx.negOneFx8;
+        return Fx.zeroFx8;
+    }
+    export function clamp(v: Fx8, min: Fx8, max: Fx8): Fx8 {
+        return Fx.max(min, Fx.min(v, max));
+    }
+    export function xor(a: Fx8, b: Fx8): Fx8 {
+        return ((a as any as number) ^ (b as any as number)) as any as Fx8;
+    }
+    export function floor(v: Fx8): Fx8 {
+        return Fx.leftShift(Fx.rightShift(v, 8), 8);
+    }
+    export function round(v: Fx8): Fx8 {
+        // lazy implementation
+        return fx.floor(Fx.add(Fx.mul(fx.sign(v), Fx8(0.5)), v));
+    }
+    export function mod(v: Fx8, q: Fx8): Fx8 {
+        // lazy implementation
+        return Fx8(Fx.toFloat(v) % Fx.toFloat(q));
+    }
+    export function sqrt(v: Fx8): Fx8 {
+        // lazy implementation
+        return Fx8(Math.sqrt(Fx.toFloat(v)));
+    }
+    export function random(): Fx8 {
+        return Fx8(Math.random());
+    }
+    export function randomRange(min: Fx8, max: Fx8): Fx8 {
+        return fx.irandomRange(Fx.toFloat(min), Fx.toFloat(max));
+    }
+    export function irandomRange(min: number, max: number): Fx8 {
+        return Fx8(Math.randomRange(min, max));
+    }
+}
+
+namespace affine.trig {
     let cachedSin: Fx8[];
     let cachedCos: Fx8[];
-
-    export class fx {
-        public static negOneFx8 = Fx8(-1);
-
-        public static sign(v: Fx8): Fx8 {
-            return v >= Fx.zeroFx8 ? Fx.oneFx8 : Fx8(-1);
-        }
-        public static signum(v: Fx8): Fx8 {
-            if (v > Fx.zeroFx8) return Fx.oneFx8;
-            if (v < Fx.zeroFx8) return fx.negOneFx8;
-            return Fx.zeroFx8;
-        }
-        public static clamp(v: Fx8, min: Fx8, max: Fx8): Fx8 {
-            return Fx.max(min, Fx.min(v, max));
-        }
-        public static xor(a: Fx8, b: Fx8): Fx8 {
-            return ((a as any as number) ^ (b as any as number)) as any as Fx8;
-        }
-        public static floor(v: Fx8): Fx8 {
-            return Fx.leftShift(Fx.rightShift(v, 8), 8);
-        }
-        public static round(v: Fx8): Fx8 {
-            // lazy implementation
-            return fx.floor(Fx.add(Fx.mul(fx.sign(v), Fx8(0.5)), v));
-        }
-        public static mod(v: Fx8, q: Fx8): Fx8 {
-            // lazy implementation
-            return Fx8(Fx.toFloat(v) % Fx.toFloat(q));
-        }
-        public static sqrt(v: Fx8): Fx8 {
-            // lazy implementation
-            return Fx8(Math.sqrt(Fx.toFloat(v)));
-        }
-        public static random(): Fx8 {
-            return Fx8(Math.random());
-        }
-        public static randomRange(min: Fx8, max: Fx8): Fx8 {
-            return fx.irandomRange(Fx.toFloat(min), Fx.toFloat(max));
-        }
-        public static irandomRange(min: number, max: number): Fx8 {
-            return Fx8(Math.randomRange(min, max));
-        }
-    }
 
     // The number of angle steps in a full circle.
     const NUM_ANGLE_SLICES = 360;
     const NUM_ANGLE_SLICES_OVER_2 = NUM_ANGLE_SLICES >> 1;
 
-    export class trig {
-        public static init() {
-            if (!cachedSin) {
-                cachedSin = trig.cacheSin(NUM_ANGLE_SLICES);
-                cachedCos = trig.cacheCos(NUM_ANGLE_SLICES);
-            }
-        }
-
-        /**
-         * angle in [0..NUM_ANGLE_SLICES]
-         */
-        public static sin(angle: number): Fx8 {
-            angle %= NUM_ANGLE_SLICES;
-            if (angle < 0) angle += NUM_ANGLE_SLICES;
-            //return Fx8(Math.sin(angle * Math.PI / NUM_ANGLE_SLICES_OVER_2));
-            return cachedSin[Math.floor(angle)];
-        }
-
-        /**
-         * angle in [0..NUM_ANGLE_SLICES]
-         */
-        public static cos(angle: number): Fx8 {
-            angle %= NUM_ANGLE_SLICES;
-            if (angle < 0) angle += NUM_ANGLE_SLICES;
-            //return Fx8(Math.cos(angle * Math.PI / NUM_ANGLE_SLICES_OVER_2));
-            return cachedCos[Math.floor(angle)];
-        }
-
-        private static cacheSin(slices: number): Fx8[] {
-            let sin: Fx8[] = [];
-            let anglePerSlice = 2 * Math.PI / slices;
-            for (let i = 0; i < slices; i++) {
-                sin.push(Fx8(Math.sin(i * anglePerSlice)));
-            }
-            return sin;
-        }
-
-        private static cacheCos(slices: number): Fx8[] {
-            let cos: Fx8[] = [];
-            let anglePerSlice = 2 * Math.PI / slices;
-            for (let i = 0; i < slices; i++) {
-                cos.push(Fx8(Math.cos(i * anglePerSlice)));
-            }
-            return cos;
+    export function init() {
+        if (!cachedSin) {
+            cachedSin = trig.cacheSin(NUM_ANGLE_SLICES);
+            cachedCos = trig.cacheCos(NUM_ANGLE_SLICES);
         }
     }
-    trig.init();
 
+    /**
+     * angle in [0..NUM_ANGLE_SLICES]
+     */
+    export function sin(angle: number): Fx8 {
+        angle %= NUM_ANGLE_SLICES;
+        if (angle < 0) angle += NUM_ANGLE_SLICES;
+        //return Fx8(Math.sin(angle * Math.PI / NUM_ANGLE_SLICES_OVER_2));
+        return cachedSin[Math.floor(angle)];
+    }
+
+    /**
+     * angle in [0..NUM_ANGLE_SLICES]
+     */
+    export function cos(angle: number): Fx8 {
+        angle %= NUM_ANGLE_SLICES;
+        if (angle < 0) angle += NUM_ANGLE_SLICES;
+        //return Fx8(Math.cos(angle * Math.PI / NUM_ANGLE_SLICES_OVER_2));
+        return cachedCos[Math.floor(angle)];
+    }
+
+    export function cacheSin(slices: number): Fx8[] {
+        let sin: Fx8[] = [];
+        let anglePerSlice = 2 * Math.PI / slices;
+        for (let i = 0; i < slices; i++) {
+            sin.push(Fx8(Math.sin(i * anglePerSlice)));
+        }
+        return sin;
+    }
+
+    export function cacheCos(slices: number): Fx8[] {
+        let cos: Fx8[] = [];
+        let anglePerSlice = 2 * Math.PI / slices;
+        for (let i = 0; i < slices; i++) {
+            cos.push(Fx8(Math.cos(i * anglePerSlice)));
+        }
+        return cos;
+    }
+    trig.init();
+}
+
+namespace affine {
     export class Vec2 {
         public dirty: boolean;
         public readonly: boolean;

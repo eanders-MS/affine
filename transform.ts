@@ -1,4 +1,8 @@
 namespace affine {
+    export enum TransformMode {
+        Normal, OnlyTranslation, NoRotationOrReflection, NoScale, NoScaleOrReflection
+    }
+
     /**
      * A `Transform` is a set of affine transformations to be performed on a Vec2: translation, rotation, and scale.
      * A `Transform` can have a parent `Tranform`.
@@ -109,7 +113,7 @@ namespace affine {
             }
         }
 
-        public transformToRef(v: Vec2, ref: Vec2): Vec2 {
+        public transformToRef(v: Vec2, ref: Vec2, transformMode = TransformMode.Normal): Vec2 {
             Vec2.MulToRef(v, this.worldScl, ref);
             Vec2.RotateToRef(ref, this.worldRot, ref);
             Vec2.TranslateToRef(ref, this.worldPos, ref);
