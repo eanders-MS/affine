@@ -1,6 +1,6 @@
 namespace affine {
     /**
-     * An `EaseFrame` is a segment of an animation, describing how to interpolate from
+     * An EaseFrame is a segment of an animation, describing how to interpolate from
      * start value to end value.
      */
     export class EaseFrame {
@@ -94,7 +94,7 @@ namespace affine {
     }
 
     /**
-     * An `Animation` consists of an optionally looping set of contiguous `EaseFrame`s.
+     * An Animation consists of an optionally looping set of contiguous EaseFrames.
      */
     export class Animation {
         private frames: EaseFrame[];

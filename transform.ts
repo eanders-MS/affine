@@ -4,8 +4,8 @@ namespace affine {
     }
 
     /**
-     * A `Transform` is a set of affine transformations to be performed on a Vec2: translation, rotation, and scale.
-     * A `Transform` can have a parent `Tranform`.
+     * A Transform is a set of affine transformations to be performed on a Vec2: translation, rotation, and scale. TODO: Add shear.
+     * A Transform can have a parent Transform.
      */
     export class Transform {
         private localPos_: Vec2;
