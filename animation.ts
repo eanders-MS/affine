@@ -1,75 +1,50 @@
 namespace affine {
+    export interface EaseFrameOpts<T> {
+        duration: number;
+        startValue: T;
+        endValue: T;
+        relative?: boolean;
+        curve: (a: number, b: number, t: number) => number;
+        tag?: string;
+    }
+
+    export interface EaseFrameState<T> {
+        startTimeMs?: number;
+        startValue?: T;
+        endValue?: T;
+        currValue: T;
+    }
+
     /**
      * An EaseFrame is a segment of an animation, describing how to interpolate from
      * start value to end value.
      */
-    export class EaseFrame {
-        // Interpolation state -- mutable
-        public state: {
-            startTimeMs?: number;
-            startValue?: number | Vec2;
-            endValue?: number | Vec2;
-            currValue: number | Vec2;
-        };
+    export interface EaseFrame<T> {
+        state: EaseFrameState<T>;
+        opts: EaseFrameOpts<T>;
+        init(currValue: T): void;
+        step(pctTime?: number): void;
+    }
 
-        constructor(
-            // Interpolation params -- read only
-            public opts: {
-                // Duration of this frame
-                duration: number,
-                // Starting value
-                startValue: number | Vec2,
-                // Ending value
-                endValue: number | Vec2,
-                // Whether values are relative to previous frame's end (or initial value)
-                relative?: boolean,
-                // Curve to follow (see easing.ts for pre-defined curves)
-                curve: (a: number, b: number, t: number) => number,
-                // User-assigned value
-                tag?: string
-            }) {
-            if ((this.opts.endValue as any).x !== undefined) {
-                // Vec2
-                this.opts.startValue = (this.opts.startValue as Vec2).clone();
-                this.opts.endValue = (this.opts.endValue as Vec2).clone();
-                this.state = {
-                    currValue: (this.opts.startValue as Vec2).clone()
-                };
-            } else {
-                // number
-                this.state = {
-                    currValue: this.opts.startValue
-                };
-            }
+    export class EaseFrame_Float implements EaseFrame<number> {
+        public state: EaseFrameState<number>;
+
+        constructor(public opts: EaseFrameOpts<number>) {
+            this.state = {
+                currValue: this.opts.startValue
+            };
         }
 
-        public init(currValue: number | Vec2) {
-            if ((this.opts.endValue as any).x !== undefined) {
-                // Vec2
-                currValue = currValue as Vec2;
-                const endValue = this.opts.endValue as Vec2;
-                const startValue = this.opts.startValue as Vec2;
-                if (currValue !== undefined && this.opts.relative) {
-                    this.state.startValue = currValue.clone();
-                    this.state.endValue = Vec2.AddToRef(currValue, endValue, new Vec2());
-                } else {
-                    this.state.startValue = (this.opts.startValue as Vec2).clone();
-                    this.state.endValue = (this.opts.endValue as Vec2).clone();
-                }
-                this.state.currValue = this.state.startValue.clone();
+        public init(currValue: number) {
+            const endValue = this.opts.endValue as number;
+            if (currValue !== undefined && this.opts.relative) {
+                this.state.startValue = currValue;
+                this.state.endValue = currValue + endValue;
             } else {
-                // number
-                currValue = currValue as number;
-                const endValue = this.opts.endValue as number;
-                if (currValue !== undefined && this.opts.relative) {
-                    this.state.startValue = currValue;
-                    this.state.endValue = currValue + endValue;
-                } else {
-                    this.state.startValue = this.opts.startValue;
-                    this.state.endValue = this.opts.endValue;
-                }
-                this.state.currValue = this.state.startValue;
+                this.state.startValue = this.opts.startValue;
+                this.state.endValue = this.opts.endValue;
             }
+            this.state.currValue = this.state.startValue;
             this.state.startTimeMs = control.millis();
         }
 
@@ -79,44 +54,72 @@ namespace affine {
                 const elapsedTimeMs = currTimeMs - this.state.startTimeMs;
                 pctTime = elapsedTimeMs / (this.opts.duration * 1000);
             }
-            if ((this.opts.endValue as any).x !== undefined) {
-                // Vec2
-                const startValue = this.state.startValue as Vec2;
-                const endValue = this.state.endValue as Vec2;
-                const currValue = this.state.currValue as Vec2;
-                currValue.x = Fx8(this.opts.curve(Fx.toFloat(startValue.x), Fx.toFloat(endValue.x), pctTime));
-                currValue.y = Fx8(this.opts.curve(Fx.toFloat(startValue.y), Fx.toFloat(endValue.y), pctTime));
+            this.state.currValue = this.opts.curve(this.state.startValue as number, this.state.endValue as number, pctTime);
+        }
+    }
+
+    export class EaseFrame_Vec2 implements EaseFrame<Vec2> {
+        public state: EaseFrameState<Vec2>;
+
+        constructor(public opts: EaseFrameOpts<Vec2>) {
+            this.opts.startValue = this.opts.startValue.clone();
+            this.opts.endValue = this.opts.endValue.clone();
+            this.state = {
+                currValue: this.opts.startValue.clone()
+            };
+        }
+
+        public init(currValue: Vec2) {
+            const endValue = this.opts.endValue;
+            const startValue = this.opts.startValue;
+            if (currValue !== undefined && this.opts.relative) {
+                this.state.startValue = currValue.clone();
+                this.state.endValue = Vec2.AddToRef(currValue, endValue, new Vec2());
             } else {
-                // number
-                this.state.currValue = this.opts.curve(this.state.startValue as number, this.state.endValue as number, pctTime);
+                this.state.startValue = this.opts.startValue.clone();
+                this.state.endValue = this.opts.endValue.clone();
             }
+            this.state.currValue = this.state.startValue.clone();
+        }
+
+        public step(pctTime?: number) {
+            if (pctTime === undefined) {
+                const currTimeMs = control.millis();
+                const elapsedTimeMs = currTimeMs - this.state.startTimeMs;
+                pctTime = elapsedTimeMs / (this.opts.duration * 1000);
+            }
+            const startValue = this.state.startValue;
+            const endValue = this.state.endValue;
+            const currValue = this.state.currValue;
+            currValue.x = Fx8(this.opts.curve(Fx.toFloat(startValue.x), Fx.toFloat(endValue.x), pctTime));
+            currValue.y = Fx8(this.opts.curve(Fx.toFloat(startValue.y), Fx.toFloat(endValue.y), pctTime));
         }
     }
 
     /**
      * An Animation consists of an optionally looping set of contiguous EaseFrames.
      */
-    export class Animation {
-        private frames: EaseFrame[];
+    export class Animation<T> {
+        private frames: EaseFrame<T>[];
         private frameIdx: number;
         private loop: boolean;
         private playing_: boolean;
 
         public get playing() { return this.playing_; }
 
-        constructor(private callback: (value: number | Vec2, tag?: string) => void, opts?: {
+        constructor(private callback: (value: T, tag?: string) => void, opts?: {
             loop?: boolean
         }) {
             this.loop = opts && opts.loop;
             this.frames = [];
         }
 
-        public addFrame(frame: EaseFrame): this {
+        public addFrame(frame: EaseFrame<T>): this {
             this.frames.push(frame);
             return this;
         }
 
-        public start(initialValue?: number) {
+        public start(initialValue?: T) {
             this.frameIdx = 0;
             const currFrame = this.currFrame();
             if (currFrame) {
@@ -135,12 +138,12 @@ namespace affine {
             }
         }
 
-        private currFrame(): EaseFrame {
+        private currFrame(): EaseFrame<T> {
             return this.frameIdx < this.frames.length ? this.frames[this.frameIdx] : undefined;
         }
 
         private stepFrame() {
-            let lastValue: number | Vec2;
+            let lastValue: T;
             let currFrame = this.currFrame();
             if (!currFrame) { return; }
             const currTimeMs = control.millis();
@@ -170,7 +173,7 @@ namespace affine {
             }
         }
 
-        private initFrame(initialValue?: number | Vec2) {
+        private initFrame(initialValue?: T) {
             const currFrame = this.currFrame();
             if (currFrame) {
                 currFrame.init(initialValue);
