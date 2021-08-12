@@ -1,5 +1,5 @@
 namespace affine {
-    export interface EaseFrameOpts<T> {
+    export class EaseFrameOpts<T> {
         duration: number;
         startValue: T;
         endValue: T;
@@ -8,7 +8,7 @@ namespace affine {
         tag?: string;
     }
 
-    export interface EaseFrameState<T> {
+    export class EaseFrameState<T> {
         startTimeMs?: number;
         startValue?: T;
         endValue?: T;
@@ -19,17 +19,17 @@ namespace affine {
      * An EaseFrame is a segment of an animation, describing how to interpolate from
      * start value to end value.
      */
-    export interface EaseFrame<T> {
+    export class EaseFrame<T> {
         state: EaseFrameState<T>;
         opts: EaseFrameOpts<T>;
-        init(currValue: T): void;
-        step(pctTime?: number): void;
+        constructor() { }
+        /* abstract */ init(currValue: T): void { }
+        /* abstract */ step(pctTime?: number): void { }
     }
 
-    export class EaseFrame_Float implements EaseFrame<number> {
-        public state: EaseFrameState<number>;
-
+    export class EaseFrame_Float extends EaseFrame<number> {
         constructor(public opts: EaseFrameOpts<number>) {
+            super();
             this.state = {
                 currValue: this.opts.startValue
             };
@@ -58,10 +58,9 @@ namespace affine {
         }
     }
 
-    export class EaseFrame_Vec2 implements EaseFrame<Vec2> {
-        public state: EaseFrameState<Vec2>;
-
+    export class EaseFrame_Vec2 extends EaseFrame<Vec2> {
         constructor(public opts: EaseFrameOpts<Vec2>) {
+            super();
             this.opts.startValue = this.opts.startValue.clone();
             this.opts.endValue = this.opts.endValue.clone();
             this.state = {
