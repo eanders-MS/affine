@@ -1,18 +1,22 @@
 namespace affine {
     export class EaseFrameOpts<T> {
-        duration: number;
-        startValue: T;
-        endValue: T;
-        relative?: boolean;
-        curve: (a: number, b: number, t: number) => number;
-        tag?: string;
+        constructor(
+            public duration: number,
+            public startValue: T,
+            public endValue: T,
+            public relative: boolean, // optional
+            public curve: (a: number, b: number, t: number) => number,
+            public tag?: string
+        ) { }
     }
 
     export class EaseFrameState<T> {
-        startTimeMs?: number;
-        startValue?: T;
-        endValue?: T;
-        currValue: T;
+        constructor(
+            public startTimeMs: number, // optional
+            public startValue: T, // optional
+            public endValue: T, // optional
+            public currValue: T
+        ) { }
     }
 
     /**
@@ -20,19 +24,23 @@ namespace affine {
      * start value to end value.
      */
     export class EaseFrame<T> {
-        state: EaseFrameState<T>;
-        opts: EaseFrameOpts<T>;
-        constructor() { }
+        constructor(
+            public state: EaseFrameState<T>,
+            public opts: EaseFrameOpts<T>
+         ) { }
         /* abstract */ init(currValue: T): void { }
         /* abstract */ step(pctTime?: number): void { }
     }
 
     export class EaseFrame_Float extends EaseFrame<number> {
-        constructor(public opts: EaseFrameOpts<number>) {
-            super();
-            this.state = {
-                currValue: this.opts.startValue
-            };
+        constructor(opts: EaseFrameOpts<number>) {
+            super(
+                new EaseFrameState<number>(
+                    undefined,
+                    undefined,
+                    undefined,
+                    opts.startValue),
+                opts);
         }
 
         public init(currValue: number) {
@@ -54,18 +62,24 @@ namespace affine {
                 const elapsedTimeMs = currTimeMs - this.state.startTimeMs;
                 pctTime = elapsedTimeMs / (this.opts.duration * 1000);
             }
-            this.state.currValue = this.opts.curve(this.state.startValue as number, this.state.endValue as number, pctTime);
+            this.state.currValue = this.opts.curve(this.state.startValue, this.state.endValue, pctTime);
         }
     }
 
     export class EaseFrame_Vec2 extends EaseFrame<Vec2> {
         constructor(public opts: EaseFrameOpts<Vec2>) {
-            super();
-            this.opts.startValue = this.opts.startValue.clone();
-            this.opts.endValue = this.opts.endValue.clone();
-            this.state = {
-                currValue: this.opts.startValue.clone()
-            };
+            super(
+                new EaseFrameState<Vec2>(
+                    undefined,
+                    undefined,
+                    undefined,
+                    opts.startValue.clone()),
+                new EaseFrameOpts<Vec2>(
+                    opts.duration,
+                    opts.startValue.clone(),
+                    opts.endValue.clone(),
+                    opts.relative,
+                    opts.curve, opts.tag));
         }
 
         public init(currValue: Vec2) {
