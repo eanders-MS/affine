@@ -149,11 +149,13 @@ namespace affine.Gpu {
     export function exec() {
         ++frameId;
         // Run vertex shaders.
-        commands.forEach(cmd => {
+        for (let i = 0; i < commands.length; ++i) {
+            const cmd = commands[i];
             cmd.transform(frameId);
-        });
+        }
         // Run fragment shaders.
-        commands.forEach(cmd => {
+        for (let i = 0; i < commands.length; ++i) {
+            const cmd = commands[i];
             // Get bounds of transformed vertices and clip to screen.
             const left = fx.clamp(cmd.bounds.left, Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
             const top = fx.clamp(cmd.bounds.top, Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
@@ -175,7 +177,7 @@ namespace affine.Gpu {
                     }
                 }
             }
-        });
+        }
         commands = [];
     }
 }
