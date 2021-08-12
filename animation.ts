@@ -93,6 +93,7 @@ namespace affine {
                 this.state.endValue = this.opts.endValue.clone();
             }
             this.state.currValue = this.state.startValue.clone();
+            this.state.startTimeMs = control.millis();
         }
 
         public step(pctTime?: number) {
