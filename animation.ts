@@ -44,7 +44,7 @@ namespace affine {
         }
 
         public init(currValue: number) {
-            const endValue = this.opts.endValue as number;
+            const endValue = this.opts.endValue;
             if (currValue !== undefined && this.opts.relative) {
                 this.state.startValue = currValue;
                 this.state.endValue = currValue + endValue;
@@ -63,6 +63,44 @@ namespace affine {
                 pctTime = elapsedTimeMs / (this.opts.duration * 1000);
             }
             this.state.currValue = this.opts.curve(this.state.startValue, this.state.endValue, pctTime);
+        }
+    }
+
+    export class EaseFrame_Fx8 extends EaseFrame<Fx8> {
+        constructor(opts: EaseFrameOpts<Fx8>) {
+            super(
+                new EaseFrameState<Fx8>(
+                    undefined,
+                    undefined,
+                    undefined,
+                    opts.startValue),
+                opts);
+        }
+
+        public init(currValue: Fx8) {
+            const endValue = this.opts.endValue;
+            if (currValue !== undefined && this.opts.relative) {
+                this.state.startValue = currValue;
+                this.state.endValue = Fx.add(currValue, endValue);
+            } else {
+                this.state.startValue = this.opts.startValue;
+                this.state.endValue = this.opts.endValue;
+            }
+            this.state.currValue = this.state.startValue;
+            this.state.startTimeMs = control.millis();
+        }
+
+        public step(pctTime?: number) {
+            if (pctTime === undefined) {
+                const currTimeMs = control.millis();
+                const elapsedTimeMs = currTimeMs - this.state.startTimeMs;
+                pctTime = elapsedTimeMs / (this.opts.duration * 1000);
+            }
+            this.state.currValue = Fx8(
+                this.opts.curve(
+                    Fx.toFloat(this.state.startValue),
+                    Fx.toFloat(this.state.endValue),
+                    pctTime));
         }
     }
 
