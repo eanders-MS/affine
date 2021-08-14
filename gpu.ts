@@ -63,6 +63,7 @@ namespace affine.Gpu {
         vs: VertexShader;
         enqueue(): void;
         transform(frameId: number): void;
+        bary(p: Vec2, out: Vec3): boolean;
         shade(p: Vec2): number;
     }
 
@@ -122,14 +123,26 @@ namespace affine.Gpu {
         // Math issue?
         private static readonly V2V0_EDGE_FUDGE = Fx8(-20);
 
-        public shade(/* const */p: Vec2): number {
+        public bary(p: Vec2, out: Vec3): boolean {
             // Check barycentric coords. Is point in triangle?
             const w0 = Vec2.Cross(this.v1.pos, this.v2.pos, p);
-            if (w0 < Fx.zeroFx8) return 0;
+            if (w0 < Fx.zeroFx8) return false;
             const w1 = Vec2.Cross(this.v2.pos, this.v0.pos, p);
-            if (w1 < DrawTexturedTri.V2V0_EDGE_FUDGE) return 0;
+            if (w1 < DrawTexturedTri.V2V0_EDGE_FUDGE) return false;
             const w2 = Vec2.Cross(this.v0.pos, this.v1.pos, p);
-            if (w2 < Fx.zeroFx8) return 0;
+            if (w2 < Fx.zeroFx8) return false;
+            out.x = w0;
+            out.y = w1;
+            out.z = w2;
+            return true;
+        }
+
+        public shade(/* const */p: Vec2): number {
+            const bary = new Vec3();
+            if (!this.bary(p, bary)) { return 0; }
+            const w0 = bary.x;
+            const w1 = bary.y;
+            const w2 = bary.z;
 
             // Get uv coordinates at point.
             // TODO: Support different texture wrapping modes.
