@@ -112,7 +112,7 @@ namespace affine.Gpu {
 
         public transform(frameId: number): void {
             this.vs.transform(frameId, this.xfrm);
-            this.area = Vec2.Cross(this.v0.pos, this.v1.pos, this.v2.pos);
+            this.area = Vec2.Edge(this.v0.pos, this.v1.pos, this.v2.pos);
             this.vArea.set(this.area, this.area);
             Vec2.MinOfToRef(this.pts, this.min);
             Vec2.MaxOfToRef(this.pts, this.max);
@@ -122,15 +122,15 @@ namespace affine.Gpu {
         // Hand-tuned threshold for shared edge of a split rectangle. Should
         // be Fx.zeroFx8 ideally, but that results in missing pixels.
         // Math issue?
-        private static readonly V2V0_EDGE_FUDGE = Fx8(-20);
+        private static readonly V2V0_EDGE_FUDGE = Fx8(0);
 
-        private barycenter(p: Vec2, ref: Vec3): boolean {
+        private barycentric(p: Vec2, ref: Vec3): boolean {
             // Check barycentric coords. Is point in triangle?
-            const w0 = Vec2.Cross(this.v1.pos, this.v2.pos, p);
+            const w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
             if (w0 < Fx.zeroFx8) return false;
-            const w1 = Vec2.Cross(this.v2.pos, this.v0.pos, p);
+            const w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
             if (w1 < DrawTexturedTri.V2V0_EDGE_FUDGE) return false;
-            const w2 = Vec2.Cross(this.v0.pos, this.v1.pos, p);
+            const w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
             if (w2 < Fx.zeroFx8) return false;
             ref.x = w0;
             ref.y = w1;
@@ -139,7 +139,7 @@ namespace affine.Gpu {
         }
 
         public shade(/* const */p: Vec2): number {
-            if (!this.barycenter(p, this.bary)) { return 0; }
+            if (!this.barycentric(p, this.bary)) { return 0; }
 
             const w0 = this.bary.x;
             const w1 = this.bary.y;

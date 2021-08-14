@@ -329,7 +329,7 @@ namespace affine {
                 Fx.mul(a.y, b.x));
         }
 
-        public static Cross(a: Vec2, b: Vec2, c: Vec2): Fx8 {
+        public static Edge(a: Vec2, b: Vec2, c: Vec2): Fx8 {
             // ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x)
             return Fx.sub(
                 Fx.mul(
