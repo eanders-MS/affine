@@ -122,7 +122,7 @@ namespace affine.Gpu {
         // Hand-tuned threshold for shared edge of a split rectangle. Should
         // be Fx.zeroFx8 ideally, but that results in missing pixels.
         // Math issue?
-        private static readonly V2V0_EDGE_FUDGE = Fx8(20);
+        private static readonly V2V0_EDGE_FUDGE = Fx8(-20);
 
         private barycentric(p: Vec2, ref: Vec3): boolean {
             // Check barycentric coords. Is point in triangle?
