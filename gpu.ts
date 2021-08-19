@@ -154,21 +154,38 @@ namespace affine.Gpu {
             const top = fx.clamp(this.bounds.top, Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
             const right = fx.clamp(Fx.add(this.bounds.left, this.bounds.width), Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
             const bottom = fx.clamp(Fx.add(this.bounds.top, this.bounds.height), Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
-            // Loop over bounded pixels, rendering them.
             const p = new Vec2(left, top);
+            const A01 = Fx.sub(this.v0.pos.y, this.v1.pos.y);
+            const A12 = Fx.sub(this.v1.pos.y, this.v2.pos.y);
+            const A20 = Fx.sub(this.v2.pos.y, this.v0.pos.y);
+            const B01 = Fx.sub(this.v0.pos.x, this.v1.pos.x);
+            const B12 = Fx.sub(this.v1.pos.x, this.v2.pos.x);
+            const B20 = Fx.sub(this.v2.pos.x, this.v0.pos.x);
+            let w0_row = Vec2.Edge(this.v1.pos, this.v2.pos, p);
+            let w1_row = Vec2.Edge(this.v2.pos, this.v0.pos, p);
+            let w2_row = Vec2.Edge(this.v0.pos, this.v1.pos, p);
+            // Loop over bounded pixels, rendering them.
             for (; p.y <= bottom; p.y = Fx.add(p.y, Fx.oneFx8)) {
                 const yi = Fx.toInt(p.y) + Screen.SCREEN_HALF_HEIGHT;
+                let w0 = w0_row;
+                let w1 = w1_row;
+                let w2 = w2_row;
                 p.x = left;
                 for (; p.x <= right; p.x = Fx.add(p.x, Fx.oneFx8)) {
-                    // Returns zero if p is outside the poly.
-                    const color = this.shade(p);
-                    if (color) {
-                        screen.setPixel(
-                            Fx.toInt(p.x) + Screen.SCREEN_HALF_WIDTH,
-                            yi,
-                            color);
+                    if (((w0 as any as number) | (w1 as any as number) | (w2 as any as number)) >= 0) {
+                        const color = this.shade(w0, w1, w2, p);
+                        if (color) {
+                            const xi = Fx.toInt(p.x) + Screen.SCREEN_HALF_WIDTH;
+                            screen.setPixel(xi, yi, color);
+                        }
                     }
+                    w0 = Fx.add(w0, A12);
+                    w1 = Fx.add(w0, A20);
+                    w2 = Fx.add(w0, A01);
                 }
+                w0_row = Fx.add(w0_row, B12);
+                w1_row = Fx.add(w1_row, B20);
+                w2_row = Fx.add(w2_row, B01);
             }
         }
 
@@ -191,13 +208,7 @@ namespace affine.Gpu {
             return true;
         }
 
-        public shade(/* const */p: Vec2): number {
-            if (!this.barycentric(p, this.bary)) { return 0; }
-
-            const w0 = this.bary.x;
-            const w1 = this.bary.y;
-            const w2 = this.bary.z;
-
+        public shade(w0: Fx8, w1: Fx8, w2: Fx8, /* const */p: Vec2): number {
             // Get uv coordinates at point.
             // TODO: Support different texture wrapping modes.
             Vec2.ScaleToRef(this.v0.uv, w0, this.uv0);
