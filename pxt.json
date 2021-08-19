@@ -17,7 +17,8 @@
         "easing.ts",
         "sprite.ts",
         "gpu.ts",
-        "bounds.ts"
+        "bounds.ts",
+        "draw.ts"
     ],
     "testFiles": [
         "test.ts"

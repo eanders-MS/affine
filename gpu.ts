@@ -100,6 +100,7 @@ namespace affine.Gpu {
     export class DrawCommand {
         public bounds: Bounds;
         public xfrm: Transform;
+        public debug: boolean;
         // Cached and computed values
         private area: Fx8;
         private vArea: Vec2;
@@ -108,7 +109,6 @@ namespace affine.Gpu {
         private v2: Vertex;
         private pts: Vec2[];
         // Temp vars
-        private bary: Vec3;
         private min: Vec2;
         private max: Vec2;
         private uv0: Vec2;
@@ -127,7 +127,6 @@ namespace affine.Gpu {
             this.v2 = this.vs.verts[this.tri[2]];
             this.pts = [this.v0.pos, this.v1.pos, this.v2.pos];
             this.vArea = new Vec2();
-            this.bary = new Vec3();
             this.min = new Vec2();
             this.max = new Vec2();
             this.uv0 = new Vec2();
@@ -177,6 +176,16 @@ namespace affine.Gpu {
                     }
                 }
             }
+            if (this.debug) this.debugDraw(left, top, right, bottom);
+        }
+
+        public debugDraw(left: Fx8, top: Fx8, right: Fx8, bottom: Fx8) {
+            const p0 = Vec2.AddToRef(this.v0.pos, Screen.SCREEN_HALF_SIZE, new Vec2());
+            const p1 = Vec2.AddToRef(this.v1.pos, Screen.SCREEN_HALF_SIZE, new Vec2());
+            const p2 = Vec2.AddToRef(this.v2.pos, Screen.SCREEN_HALF_SIZE, new Vec2());
+            affine.drawLine(screen, p0, p1, 15);
+            affine.drawLine(screen, p1, p2, 15);
+            affine.drawLine(screen, p2, p0, 15);
         }
 
         public shade(w0: Fx8, w1: Fx8, w2: Fx8, /* const */p: Vec2): number {
