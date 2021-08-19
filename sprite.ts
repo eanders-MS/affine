@@ -103,6 +103,9 @@ namespace affine {
         public get width() { return this.vs.bounds.width; }
         public get height() { return this.vs.bounds.height; }
 
+        public get debug() { return this.cmds[0].debug; }
+        public set debug(v) { this.cmds.forEach(cmd => cmd.debug = v); }
+
         constructor(
             scene: Scene,
             hVertCount: number,
