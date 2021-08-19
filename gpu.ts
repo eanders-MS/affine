@@ -172,6 +172,9 @@ namespace affine.Gpu {
                 let w2 = w2_row;
                 p.x = left;
                 for (; p.x <= right; p.x = Fx.add(p.x, Fx.oneFx8)) {
+                    w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
+                    w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
+                    w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
                     if (((w0 as any as number) | (w1 as any as number) | (w2 as any as number)) >= 0) {
                         const color = this.shade(w0, w1, w2, p);
                         if (color) {
@@ -181,11 +184,11 @@ namespace affine.Gpu {
                     }
                     w0 = Fx.add(w0, A12);
                     w1 = Fx.add(w1, A20);
-                    w2 = Fx.sub(w2, A01);
+                    w2 = Fx.add(w2, A01);
                 }
                 w0_row = Fx.add(w0_row, B12);
                 w1_row = Fx.add(w1_row, B20);
-                w2_row = Fx.sub(w2_row, B01);
+                w2_row = Fx.add(w2_row, B01);
             }
         }
 
