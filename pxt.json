@@ -15,7 +15,6 @@
         "screen.ts",
         "animation.ts",
         "easing.ts",
-        "thing.ts",
         "sprite.ts",
         "gpu.ts",
         "bounds.ts"

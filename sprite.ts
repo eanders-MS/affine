@@ -9,7 +9,7 @@ namespace affine {
         height: Fx8;
     }
     
-    export class Sprite extends Thing implements IPlaceable, ISizable {
+    export /*abstract*/ class Sprite implements IPlaceable, ISizable {
         private xfrm_: Transform;
 
         /* abstract */ get width(): Fx8 { return Fx.zeroFx8; }
@@ -18,10 +18,12 @@ namespace affine {
         public get xfrm() { return this.xfrm_; }
 
         constructor(public scene: Scene) {
-            super("sprite");
             this.xfrm_ = new Transform();
             this.xfrm_.parent = scene.xfrm;
         }
+
+        /*abstract*/ update(dt: number): void { }
+        /*abstract*/ draw(): void { }
     }
 
     const SPRITE_TRI0_INDICES = [0, 3, 2];
