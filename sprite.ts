@@ -69,6 +69,7 @@ namespace affine {
                 new Vertex(pts[3], uvs[3], true),
             ];
             this.vs = vs(this.verts);
+            this.ps = ps();
             this.tri0 = new Gpu.DrawCommand(this.vs, this.ps, SPRITE_TRI0_INDICES);
             this.tri1 = new Gpu.DrawCommand(this.vs, this.ps, SPRITE_TRI1_INDICES);
         }
