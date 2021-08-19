@@ -31,19 +31,22 @@ namespace affine.Gpu {
         pts: Vec2[];
         min: Vec2;
         max: Vec2;
+    
         constructor(protected src: Vertex[]) {
             this.frameId = -1;
             this.verts = src.map(v => v.clone());
-            this.pts = src.map(v => v.pos);
+            this.pts = this.verts.map(v => v.pos);
             this.min = new Vec2();
             this.max = new Vec2();
             this.bounds = Bounds.Zero();
         }
+
         protected calcBounds() {
             Vec2.MinOfToRef(this.pts, this.min);
             Vec2.MaxOfToRef(this.pts, this.max);
             this.bounds.from({ min: this.min, max: this.max });
         }
+
         /*abstract*/ transform(frameId: number, xfrm: Transform): void { }
     }
 

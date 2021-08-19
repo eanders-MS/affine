@@ -1,4 +1,14 @@
 namespace affine {
+
+    export interface IPlaceable {
+        xfrm: Transform;
+    }
+
+    export interface ISizable {
+        width: Fx8;
+        height: Fx8;
+    }
+    
     export class Sprite extends Thing implements IPlaceable, ISizable {
         private xfrm_: Transform;
 
