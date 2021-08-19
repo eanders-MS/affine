@@ -155,12 +155,12 @@ namespace affine.Gpu {
             const right = fx.clamp(Fx.add(this.bounds.left, this.bounds.width), Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
             const bottom = fx.clamp(Fx.add(this.bounds.top, this.bounds.height), Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
             const p = new Vec2(left, top);
-            const A01 = Fx.sub(this.v0.pos.y, this.v1.pos.y);
-            const A12 = Fx.sub(this.v1.pos.y, this.v2.pos.y);
-            const A20 = Fx.sub(this.v2.pos.y, this.v0.pos.y);
-            const B01 = Fx.sub(this.v0.pos.x, this.v1.pos.x);
-            const B12 = Fx.sub(this.v1.pos.x, this.v2.pos.x);
-            const B20 = Fx.sub(this.v2.pos.x, this.v0.pos.x);
+            const A01 = Fx.sub(this.v1.pos.y, this.v0.pos.y);
+            const A12 = Fx.sub(this.v2.pos.y, this.v1.pos.y);
+            const A20 = Fx.sub(this.v0.pos.y, this.v2.pos.y);
+            const B01 = Fx.sub(this.v1.pos.x, this.v0.pos.x);
+            const B12 = Fx.sub(this.v2.pos.x, this.v1.pos.x);
+            const B20 = Fx.sub(this.v0.pos.x, this.v2.pos.x);
             let w0_row = Vec2.Edge(this.v1.pos, this.v2.pos, p);
             let w1_row = Vec2.Edge(this.v2.pos, this.v0.pos, p);
             let w2_row = Vec2.Edge(this.v0.pos, this.v1.pos, p);
@@ -175,9 +175,9 @@ namespace affine.Gpu {
                     const pw0 = w0;
                     const pw1 = w1;
                     const pw2 = w2;
-                    w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
-                    w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
-                    w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
+                    //w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
+                    //w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
+                    //w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
                     if (((w0 as any as number) | (w1 as any as number) | (w2 as any as number)) >= 0) {
                         const color = this.shade(w0, w1, w2, p);
                         if (color) {
