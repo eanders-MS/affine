@@ -94,7 +94,7 @@ namespace affine {
         }
     }
 
-    class MeshSprite extends affine.Sprite {
+    export class MeshSprite extends affine.Sprite {
         verts: affine.Vertex[];
         vs: affine.Gpu.VertexShader;
         ps: affine.Gpu.PixelShader;
