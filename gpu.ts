@@ -92,6 +92,11 @@ namespace affine.Gpu {
         }
     }
 
+    // Hand-tuned threshold for shared edge of a split rectangle. Should
+    // be Fx.zeroFx8 ideally, but that results in missing pixels.
+    // Math issue?
+    const V2V0_EDGE_FUDGE = Fx8(-20);
+
     export class DrawCommand {
         public bounds: Bounds;
         public xfrm: Transform;
@@ -155,67 +160,27 @@ namespace affine.Gpu {
             const right = fx.clamp(Fx.add(this.bounds.left, this.bounds.width), Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
             const bottom = fx.clamp(Fx.add(this.bounds.top, this.bounds.height), Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
             const p = new Vec2(left, top);
-            const A01 = Fx.sub(this.v1.pos.y, this.v0.pos.y);
-            const A12 = Fx.sub(this.v2.pos.y, this.v1.pos.y);
-            const A20 = Fx.sub(this.v0.pos.y, this.v2.pos.y);
-            const B01 = Fx.sub(this.v1.pos.x, this.v0.pos.x);
-            const B12 = Fx.sub(this.v2.pos.x, this.v1.pos.x);
-            const B20 = Fx.sub(this.v0.pos.x, this.v2.pos.x);
-            let w0_row = Vec2.Edge(this.v1.pos, this.v2.pos, p);
-            let w1_row = Vec2.Edge(this.v2.pos, this.v0.pos, p);
-            let w2_row = Vec2.Edge(this.v0.pos, this.v1.pos, p);
             // Loop over bounded pixels, rendering them.
             for (; p.y <= bottom; p.y = Fx.add(p.y, Fx.oneFx8)) {
                 const yi = Fx.toInt(p.y) + Screen.SCREEN_HALF_HEIGHT;
-                let w0 = w0_row;
-                let w1 = w1_row;
-                let w2 = w2_row;
                 p.x = left;
                 for (; p.x <= right; p.x = Fx.add(p.x, Fx.oneFx8)) {
-                    const pw0 = w0;
-                    const pw1 = w1;
-                    const pw2 = w2;
-                    //w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
-                    //w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
-                    //w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
-                    if (((w0 as any as number) | (w1 as any as number) | (w2 as any as number)) >= 0) {
+                    const w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
+                    const w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
+                    const w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
+                    if (((w0 as any as number) | (w2 as any as number)) >= 0 && w1 >= V2V0_EDGE_FUDGE) {
                         const color = this.shade(w0, w1, w2, p);
                         if (color) {
                             const xi = Fx.toInt(p.x) + Screen.SCREEN_HALF_WIDTH;
                             screen.setPixel(xi, yi, color);
                         }
                     }
-                    w0 = Fx.add(w0, A12);
-                    w1 = Fx.add(w1, A20);
-                    w2 = Fx.add(w2, A01);
                 }
-                w0_row = Fx.add(w0_row, B12);
-                w1_row = Fx.add(w1_row, B20);
-                w2_row = Fx.add(w2_row, B01);
             }
         }
 
-        // Hand-tuned threshold for shared edge of a split rectangle. Should
-        // be Fx.zeroFx8 ideally, but that results in missing pixels.
-        // Math issue?
-        private static readonly V2V0_EDGE_FUDGE = Fx8(-20);
-
-        private barycentric(p: Vec2, ref: Vec3): boolean {
-            // Check barycentric coords. Is point in triangle?
-            const w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
-            if (w0 < Fx.zeroFx8) return false;
-            const w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
-            if (w1 < DrawCommand.V2V0_EDGE_FUDGE) return false;
-            const w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
-            if (w2 < Fx.zeroFx8) return false;
-            ref.x = w0;
-            ref.y = w1;
-            ref.z = w2;
-            return true;
-        }
-
         public shade(w0: Fx8, w1: Fx8, w2: Fx8, /* const */p: Vec2): number {
-            // Get uv coordinates at point.
+            // Get uv coordinates at barycentric point
             // TODO: Support different texture wrapping modes.
             Vec2.ScaleToRef(this.v0.uv, w0, this.uv0);
             Vec2.ScaleToRef(this.v1.uv, w1, this.uv1);
