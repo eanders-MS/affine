@@ -86,11 +86,69 @@ namespace affine {
             this.tri1 = new Gpu.DrawCommand(this.vs, this.ps, SPRITE_TRI1_INDICES);
         }
 
-        /* override */ draw() {
+        /*override*/ draw() {
             this.tri0.xfrm = this.xfrm;
             this.tri1.xfrm = this.xfrm;
             this.tri0.enqueue();
             this.tri1.enqueue();
+        }
+    }
+
+    class MeshSprite extends affine.Sprite {
+        verts: affine.Vertex[];
+        vs: affine.Gpu.VertexShader;
+        ps: affine.Gpu.PixelShader;
+        cmds: affine.Gpu.DrawCommand[];
+
+        public get width() { return this.vs.bounds.width; }
+        public get height() { return this.vs.bounds.height; }
+
+        constructor(
+            scene: Scene,
+            hVertCount: number,
+            vVertCount: number,
+            hVertStep: number,
+            vVertStep: number,
+            vs: (src: affine.Vertex[]) => affine.Gpu.VertexShader,
+            ps: () => affine.Gpu.PixelShader) {
+            super(scene);
+            hVertCount = Math.max(2, hVertCount);
+            vVertCount = Math.max(2, vVertCount);
+            hVertStep = Math.max(0, hVertStep);
+            vVertStep = Math.max(0, vVertStep);
+            const width = hVertStep * (hVertCount - 1);
+            const height = vVertStep * (vVertCount - 1);
+            const halfWidth = width >> 1;
+            const halfHeight = height >> 1;
+            const uUvStep = hVertStep / width;
+            const vUvStep = vVertStep / height;
+            this.verts = [];
+            for (let vIdx = 0, vPos = -halfHeight, vUv = 0; vIdx < vVertCount; ++vIdx, vPos += vVertStep, vUv += vUvStep) {
+                for (let hIdx = 0, hPos = -halfWidth, uUv = 0; hIdx < hVertCount; ++hIdx, hPos += hVertStep, uUv += uUvStep) {
+                    const iVert = vIdx * hVertCount + hIdx;
+                    this.verts[iVert] = new affine.Vertex(
+                        affine.Vec2.N(hPos, vPos),
+                        affine.Vec2.N(uUv, vUv)
+                    );
+                }
+            }
+            this.vs = vs(this.verts);
+            this.ps = ps();
+            this.cmds = [];
+            for (let vIdx = 0; vIdx < vVertCount - 1; ++vIdx) {
+                for (let hIdx = 0; hIdx < hVertCount - 1; ++hIdx) {
+                    const iVert = vIdx * hVertCount + hIdx;
+                    const tri0 = [iVert, iVert + hVertCount, iVert + hVertCount + 1];
+                    const tri1 = [iVert + hVertCount + 1, iVert + 1, iVert];
+                    this.cmds.push(new affine.Gpu.DrawCommand(this.vs, this.ps, tri0));
+                    this.cmds.push(new affine.Gpu.DrawCommand(this.vs, this.ps, tri1));
+                }
+            }
+        }
+
+    /*override*/ draw() {
+            this.cmds.forEach(cmd => cmd.xfrm = this.xfrm);
+            this.cmds.forEach(cmd => cmd.enqueue());
         }
     }
 
