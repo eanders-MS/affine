@@ -161,9 +161,9 @@ namespace affine.Gpu {
             const B01 = Fx.sub(this.v0.pos.x, this.v1.pos.x);
             const B12 = Fx.sub(this.v1.pos.x, this.v2.pos.x);
             const B20 = Fx.sub(this.v2.pos.x, this.v0.pos.x);
-            let w0_row = Vec2.Orient(this.v1.pos, this.v2.pos, p);
-            let w1_row = Vec2.Orient(this.v2.pos, this.v0.pos, p);
-            let w2_row = Vec2.Orient(this.v0.pos, this.v1.pos, p);
+            let w0_row = Vec2.Edge(this.v1.pos, this.v2.pos, p);
+            let w1_row = Vec2.Edge(this.v2.pos, this.v0.pos, p);
+            let w2_row = Vec2.Edge(this.v0.pos, this.v1.pos, p);
             // Loop over bounded pixels, rendering them.
             for (; p.y <= bottom; p.y = Fx.add(p.y, Fx.oneFx8)) {
                 const yi = Fx.toInt(p.y) + Screen.SCREEN_HALF_HEIGHT;
@@ -180,8 +180,8 @@ namespace affine.Gpu {
                         }
                     }
                     w0 = Fx.add(w0, A12);
-                    w1 = Fx.add(w0, A20);
-                    w2 = Fx.add(w0, A01);
+                    w1 = Fx.add(w1, A20);
+                    w2 = Fx.add(w2, A01);
                 }
                 w0_row = Fx.add(w0_row, B12);
                 w1_row = Fx.add(w1_row, B20);
