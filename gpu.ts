@@ -25,13 +25,13 @@ namespace affine.Gpu {
     let commands: DrawCommand[] = [];
 
     export class VertexShader {
-        frameId: number;
+        public frameId: number;
         public verts: Vertex[];
         public bounds: Bounds;
         pts: Vec2[];
         min: Vec2;
         max: Vec2;
-    
+
         constructor(protected src: Vertex[]) {
             this.frameId = -1;
             this.verts = src.map(v => v.clone());
@@ -41,22 +41,27 @@ namespace affine.Gpu {
             this.bounds = Bounds.Zero();
         }
 
-        protected calcBounds() {
+        public calcBounds() {
             Vec2.MinOfToRef(this.pts, this.min);
             Vec2.MaxOfToRef(this.pts, this.max);
             this.bounds.from({ min: this.min, max: this.max });
         }
 
-        /*abstract*/ transform(frameId: number, xfrm: Transform): void { }
+        /*abstract*/ transform(index: number, xfrm: Transform): void { }
+
+        public exec(xfrm: Transform) {
+            for (let i = 0; i < this.src.length; ++i) {
+                this.transform(i, xfrm);
+            }
+            this.calcBounds();
+        }
     }
 
     export class BasicVertexShader extends VertexShader {
-        public transform(frameId: number, xfrm: Transform): void {
-            // Multiple DrawCommands can share a single set of vertices, so don't transform the verts more than once per frame.
-            if (this.frameId === frameId) { return; }
-            this.frameId = frameId;
-            this.src.forEach((v, i) => xfrm.transformToRef(v.pos, this.verts[i].pos));
-            this.calcBounds();
+        public transform(index: number, xfrm: Transform): void {
+            const src = this.src[index];
+            const dst = this.verts[index];
+            xfrm.transformToRef(src.pos, dst.pos);
         }
     }
 
@@ -88,7 +93,7 @@ namespace affine.Gpu {
     }
 
     export class DrawCommand {
-        bounds: Bounds;
+        public bounds: Bounds;
         public xfrm: Transform;
         // Cached and computed values
         private area: Fx8;
@@ -131,13 +136,40 @@ namespace affine.Gpu {
             commands.push(this);
         }
 
-        public transform(frameId: number): void {
-            this.vs.transform(frameId, this.xfrm);
-            this.area = Vec2.Edge(this.v0.pos, this.v1.pos, this.v2.pos);
-            this.vArea.set(this.area, this.area);
-            Vec2.MinOfToRef(this.pts, this.min);
-            Vec2.MaxOfToRef(this.pts, this.max);
-            this.bounds.from({ min: this.min, max: this.max });
+        public execVs(frameId: number): void {
+            if (this.vs.frameId !== frameId) {
+                this.vs.frameId = frameId;
+                this.vs.exec(this.xfrm);
+                this.area = Vec2.Edge(this.v0.pos, this.v1.pos, this.v2.pos);
+                this.vArea.set(this.area, this.area);
+                Vec2.MinOfToRef(this.pts, this.min);
+                Vec2.MaxOfToRef(this.pts, this.max);
+                this.bounds.from({ min: this.min, max: this.max });
+            }
+        }
+
+        public execPs(): void {
+            // Get bounds of transformed vertices and clip to screen.
+            const left = fx.clamp(this.bounds.left, Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
+            const top = fx.clamp(this.bounds.top, Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
+            const right = fx.clamp(Fx.add(this.bounds.left, this.bounds.width), Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
+            const bottom = fx.clamp(Fx.add(this.bounds.top, this.bounds.height), Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
+            // Loop over bounded pixels, rendering them.
+            const p = new Vec2(left, top);
+            for (; p.y <= bottom; p.y = Fx.add(p.y, Fx.oneFx8)) {
+                const yi = Fx.toInt(p.y) + Screen.SCREEN_HALF_HEIGHT;
+                p.x = left;
+                for (; p.x <= right; p.x = Fx.add(p.x, Fx.oneFx8)) {
+                    // Returns zero if p is outside the poly.
+                    const color = this.shade(p);
+                    if (color) {
+                        screen.setPixel(
+                            Fx.toInt(p.x) + Screen.SCREEN_HALF_WIDTH,
+                            yi,
+                            color);
+                    }
+                }
+            }
         }
 
         // Hand-tuned threshold for shared edge of a split rectangle. Should
@@ -183,32 +215,12 @@ namespace affine.Gpu {
         // Run vertex shaders.
         for (let i = 0; i < commands.length; ++i) {
             const cmd = commands[i];
-            cmd.transform(frameId);
+            cmd.execVs(frameId);
         }
-        // Run fragment shaders.
+        // Run pixel shaders.
         for (let i = 0; i < commands.length; ++i) {
             const cmd = commands[i];
-            // Get bounds of transformed vertices and clip to screen.
-            const left = fx.clamp(cmd.bounds.left, Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
-            const top = fx.clamp(cmd.bounds.top, Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
-            const right = fx.clamp(Fx.add(cmd.bounds.left, cmd.bounds.width), Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
-            const bottom = fx.clamp(Fx.add(cmd.bounds.top, cmd.bounds.height), Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
-            // Loop over bounded pixels, rendering them.
-            const p = new Vec2(left, top);
-            for (; p.y <= bottom; p.y = Fx.add(p.y, Fx.oneFx8)) {
-                const yi = Fx.toInt(p.y) + Screen.SCREEN_HALF_HEIGHT;
-                p.x = left;
-                for (; p.x <= right; p.x = Fx.add(p.x, Fx.oneFx8)) {
-                    // Returns zero if p is outside the poly.
-                    const color = cmd.shade(p);
-                    if (color) {
-                        screen.setPixel(
-                            Fx.toInt(p.x) + Screen.SCREEN_HALF_WIDTH,
-                            yi,
-                            color);
-                    }
-                }
-            }
+            cmd.execPs();
         }
         commands = [];
     }
