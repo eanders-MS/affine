@@ -140,12 +140,12 @@ namespace affine.Gpu {
             if (this.vs.frameId !== frameId) {
                 this.vs.frameId = frameId;
                 this.vs.exec(this.xfrm);
-                this.area = Vec2.Edge(this.v0.pos, this.v1.pos, this.v2.pos);
-                this.vArea.set(this.area, this.area);
-                Vec2.MinOfToRef(this.pts, this.min);
-                Vec2.MaxOfToRef(this.pts, this.max);
-                this.bounds.from({ min: this.min, max: this.max });
             }
+            this.area = Vec2.Edge(this.v0.pos, this.v1.pos, this.v2.pos);
+            this.vArea.set(this.area, this.area);
+            Vec2.MinOfToRef(this.pts, this.min);
+            Vec2.MaxOfToRef(this.pts, this.max);
+            this.bounds.from({ min: this.min, max: this.max });
         }
 
         public execPs(): void {
