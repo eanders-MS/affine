@@ -57,16 +57,34 @@ namespace affine.Gpu {
         }
     }
 
-    export interface DrawCommand {
-        bounds: Bounds;
-        xfrm: Transform;
-        vs: VertexShader;
-        enqueue(): void;
-        transform(frameId: number): void;
-        shade(p: Vec2): number;
+    export class PixelShader {
+        constructor() { }
+        /**
+         * @p the screen space pixel coordinate
+         * @uv the texture coordinates at p
+         * @returns color index for pixel
+         */
+        /*abstract*/ shade(p: Vec2, uv: Vec2): number { return 0; }
     }
 
-    export class DrawTexturedTri implements DrawCommand {
+    export class TexturedPixelShader extends PixelShader {
+        // TODO: Support texture wrapping modes
+        texWidth: Fx8;
+        texHeight: Fx8;
+        constructor(protected tex: Image) {
+            super();
+            this.texWidth = Fx8(this.tex.width - 1);
+            this.texHeight = Fx8(this.tex.height - 1);
+        }
+        shade(p: Vec2, uv: Vec2): number {
+            // Sample texture at uv.
+            const x = Fx.toInt(Fx.mul(uv.u, this.texWidth));
+            const y = Fx.toInt(Fx.mul(uv.v, this.texHeight));
+            return this.tex.getPixel(x, y);
+        }
+    }
+
+    export class DrawCommand {
         bounds: Bounds;
         public xfrm: Transform;
         // Cached and computed values
@@ -87,8 +105,8 @@ namespace affine.Gpu {
 
         constructor(
             public vs: VertexShader,
-            public tri: number[],
-            public tex: Image
+            public ps: PixelShader,
+            public tri: number[]
         ) {
             this.bounds = Bounds.Zero();
             this.v0 = this.vs.verts[this.tri[0]];
@@ -129,7 +147,7 @@ namespace affine.Gpu {
             const w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
             if (w0 < Fx.zeroFx8) return false;
             const w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
-            if (w1 < DrawTexturedTri.V2V0_EDGE_FUDGE) return false;
+            if (w1 < DrawCommand.V2V0_EDGE_FUDGE) return false;
             const w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
             if (w2 < Fx.zeroFx8) return false;
             ref.x = w0;
@@ -153,10 +171,7 @@ namespace affine.Gpu {
             Vec2.AddToRef(Vec2.AddToRef(this.uv0, this.uv1, this.uv), this.uv2, this.uv);
             Vec2.DivToRef(this.uv, this.vArea, this.uv);
 
-            // Sample texture at uv.
-            const u = Fx.toInt(Fx.mul(this.uv.u, Fx8(this.tex.width - 1)));
-            const v = Fx.toInt(Fx.mul(this.uv.v, Fx8(this.tex.height - 1)));
-            return this.tex.getPixel(u, v);
+            return this.ps.shade(p, this.uv);
         }
     }
 

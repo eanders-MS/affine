@@ -14,38 +14,42 @@ namespace affine {
         }
     }
 
-    const IMAGE_SPRITE_TRI0_INDICES = [0, 3, 2];
-    const IMAGE_SPRITE_TRI1_INDICES = [2, 1, 0];
+    const SPRITE_TRI0_INDICES = [0, 3, 2];
+    const SPRITE_TRI1_INDICES = [2, 1, 0];
 
-    export class ImageSprite extends Sprite {
-        img: Image;
+    /**
+     * Quad layout:
+     * (i:0,uv:0,0) (i:1,uv:1,0)
+     *   +------------+
+     *   |\__         |
+     *   |   \__      |
+     *   |      \__   |
+     *   |         \__|
+     *   +------------+
+     * (i:3,uv:0,1) (i:2,uv:1,1)
+     */
+
+    export class QuadSprite extends Sprite {
         verts: Vertex[];
         vs: Gpu.VertexShader;
+        ps: Gpu.PixelShader;
         tri0: Gpu.DrawCommand;
         tri1: Gpu.DrawCommand;
 
         public get width() { return this.vs.bounds.width; }
         public get height() { return this.vs.bounds.height; }
 
-        /**
-         * Quad layout:
-         * (i:0,uv:0,0) (i:1,uv:1,0)
-         *   +------------+
-         *   |\__         |
-         *   |   \__      |
-         *   |      \__   |
-         *   |         \__|
-         *   +------------+
-         * (i:3,uv:0,1) (i:2,uv:1,1)
-         */
-
-        constructor(scene: Scene, imgName: string) {
+        constructor(
+            scene: Scene,
+            width: number,
+            height: number,
+            vs: (src: Vertex[]) => Gpu.VertexShader,
+            ps: () => Gpu.PixelShader) {
             super(scene);
-            this.img = helpers.getImageByName(imgName);
-            const left = Fx8(-(this.img.width >> 1));
-            const right = Fx8(this.img.width >> 1);
-            const top = Fx8(-(this.img.height >> 1));
-            const bottom = Fx8(this.img.height >> 1);
+            const left = Fx8(-(width >> 1));
+            const right = Fx8(width >> 1);
+            const top = Fx8(-(height >> 1));
+            const bottom = Fx8(height >> 1);
             const pts = [
                 new Vec2(left, top),
                 new Vec2(right, top),
@@ -64,12 +68,9 @@ namespace affine {
                 new Vertex(pts[2], uvs[2], true),
                 new Vertex(pts[3], uvs[3], true),
             ];
-            this.vs = new Gpu.BasicVertexShader(this.verts);
-            this.tri0 = new Gpu.DrawTexturedTri(this.vs, IMAGE_SPRITE_TRI0_INDICES, this.img);
-            this.tri1 = new Gpu.DrawTexturedTri(this.vs, IMAGE_SPRITE_TRI1_INDICES, this.img);
-        }
-
-        /* override */ update() {
+            this.vs = vs(this.verts);
+            this.tri0 = new Gpu.DrawCommand(this.vs, this.ps, SPRITE_TRI0_INDICES);
+            this.tri1 = new Gpu.DrawCommand(this.vs, this.ps, SPRITE_TRI1_INDICES);
         }
 
         /* override */ draw() {
@@ -77,6 +78,17 @@ namespace affine {
             this.tri1.xfrm = this.xfrm;
             this.tri0.enqueue();
             this.tri1.enqueue();
+        }
+    }
+
+    export class ImageSprite extends QuadSprite {
+        constructor(scene: Scene, protected img: Image) {
+            super(
+                scene,
+                img.width,
+                img.height,
+                (src: Vertex[]) => new Gpu.BasicVertexShader(src),
+                () => new Gpu.TexturedPixelShader(img));
         }
     }
 }
