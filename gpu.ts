@@ -172,6 +172,9 @@ namespace affine.Gpu {
                 let w2 = w2_row;
                 p.x = left;
                 for (; p.x <= right; p.x = Fx.add(p.x, Fx.oneFx8)) {
+                    const pw0 = w0;
+                    const pw1 = w1;
+                    const pw2 = w2;
                     w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
                     w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
                     w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
