@@ -177,10 +177,10 @@ namespace affine.Gpu {
             const topRight = new Vec2();
             const bottomLeft = new Vec2();
             const bottomRight = new Vec2();
-            let incY = Fx8(8);
+            let incY = Fx8(32);
             // Loop over bounded pixels, rendering them.
             for (let y = top; y < bottom; y = Fx.add(y, incY)) {
-                let incX = Fx8(8);
+                let incX = Fx8(32);
                 if (y > bottom) {
                     incY = fx.mod(bottom, incY);
                     y = bottom;
