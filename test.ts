@@ -93,7 +93,7 @@ class TestScene extends affine.Scene {
     constructor() {
         super();
         this.sprite = new affine.ImageSprite(this, helpers.getImageByName("_test_duck"));
-        this.sprite.xfrm.localScl = new affine.Vec2(Fx8(1.5), Fx8(1.5));
+        this.sprite.xfrm.localScl = new affine.Vec2(Fx8(2.5), Fx8(2.5));
     }
 
     startup() {

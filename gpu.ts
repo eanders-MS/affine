@@ -94,21 +94,21 @@ namespace affine.Gpu {
 
     function pointInTri(p0: Vec2, p1: Vec2, p2: Vec2, p: Vec2, fudge: Fx8): boolean {
         const w0 = Vec2.Edge(p1, p2, p);
-        if (w0 < Fx.zeroFx8) return false;
+        if (w0 < fudge) return false;
         const w1 = Vec2.Edge(p2, p0, p);
         if (w1 < fudge) return false;
         const w2 = Vec2.Edge(p0, p1, p);
-        if (w2 < Fx.zeroFx8) return false;
+        if (w2 < fudge) return false;
         return true;
     }
 
     function barycentric(p0: Vec2, p1: Vec2, p2: Vec2, p: Vec2, out: Vec3, fudge: Fx8): boolean {
         const w0 = Vec2.Edge(p1, p2, p);
-        if (w0 < Fx.zeroFx8) return false;
+        if (w0 < fudge) return false;
         const w1 = Vec2.Edge(p2, p0, p);
         if (w1 < fudge) return false;
         const w2 = Vec2.Edge(p0, p1, p);
-        if (w2 < Fx.zeroFx8) return false;
+        if (w2 < fudge) return false;
         out.x = w0;
         out.y = w1;
         out.z = w2;
@@ -200,11 +200,11 @@ namespace affine.Gpu {
                 const tr = new Vec2();
                 const bl = new Vec2();
                 const br = new Vec2();
-                for (let y = this.gbounds.top; y < this.gbounds.bottom; y = Fx.add(y, broadphaseSize)) {
+                for (let y = this.gbounds.top; y <= this.gbounds.bottom; y = Fx.add(y, broadphaseSize)) {
                     this.cbounds.top = y;
                     this.cbounds.height = broadphaseSize;
                     if (this.cbounds.bottom > this.gbounds.bottom) { this.cbounds.bottom = this.cbounds.bottom; }
-                    for (let x = this.gbounds.left; x < this.gbounds.right; x = Fx.add(x, broadphaseSize)) {
+                    for (let x = this.gbounds.left; x <= this.gbounds.right; x = Fx.add(x, broadphaseSize)) {
                         this.cbounds.left = x;
                         this.cbounds.width = broadphaseSize;
                         if (this.cbounds.right > this.gbounds.right) { this.cbounds.right = this.gbounds.right; }
@@ -232,7 +232,7 @@ namespace affine.Gpu {
                     }
                 }
             }
-            //if (this.debug) { this.debugDrawVerts(15); }
+            if (this.debug) { this.debugDrawVerts(15); }
             //if (this.debug) { this.debugDrawBox(gleft, gtop, gright, gbottom, 1); }
         }
 
