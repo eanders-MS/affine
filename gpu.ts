@@ -96,7 +96,7 @@ namespace affine.Gpu {
     // be Fx.zeroFx8 ideally, but that results in missing pixels.
     // Math issue?
     const V2V0_EDGE_FUDGE = Fx8(-20);
-    const V1V2_EDGE_FUDGE = Fx8(-5);
+    const V1V2_EDGE_FUDGE = Fx8(-10);
     const V0V1_EDGE_FUDGE = Fx8(-5);
 
     export class DrawCommand {
