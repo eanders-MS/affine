@@ -96,6 +96,8 @@ namespace affine.Gpu {
     // be Fx.zeroFx8 ideally, but that results in missing pixels.
     // Math issue?
     const V2V0_EDGE_FUDGE = Fx8(-20);
+    const V1V2_EDGE_FUDGE = Fx8(-5);
+    const V0V1_EDGE_FUDGE = Fx8(-5);
 
     export class DrawCommand {
         public bounds: Bounds;
@@ -167,7 +169,7 @@ namespace affine.Gpu {
                     const w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
                     const w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
                     const w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
-                    if (((w0 as any as number) | (w2 as any as number)) >= 0 && w1 >= V2V0_EDGE_FUDGE) {
+                    if (w0 >= V1V2_EDGE_FUDGE && w1 >= V2V0_EDGE_FUDGE && w2 >= V0V1_EDGE_FUDGE) {
                         const color = this.shade(w0, w1, w2, p);
                         if (color) {
                             const xi = Fx.toInt(p.x) + Screen.SCREEN_HALF_WIDTH;
@@ -176,7 +178,7 @@ namespace affine.Gpu {
                     }
                 }
             }
-            if (this.debug) this.debugDraw(left, top, right, bottom);
+            if (this.debug) { this.debugDraw(left, top, right, bottom); }
         }
 
         public debugDraw(left: Fx8, top: Fx8, right: Fx8, bottom: Fx8) {
