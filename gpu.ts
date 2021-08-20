@@ -99,6 +99,16 @@ namespace affine.Gpu {
     const V1V2_EDGE_FUDGE = Fx8(-10);
     const V0V1_EDGE_FUDGE = Fx8(-5);
 
+    function pointInTri(p0: Vec2, p1: Vec2, p2: Vec2, p: Vec2): boolean {
+        const w0 = Vec2.Edge(p1, p2, p);
+        if (w0 < V1V2_EDGE_FUDGE) return false;
+        const w1 = Vec2.Edge(p2, p0, p);
+        if (w1 < V2V0_EDGE_FUDGE) return false;
+        const w2 = Vec2.Edge(p0, p1, p);
+        if (w2 < V0V1_EDGE_FUDGE) return false;
+        return true;
+    }
+
     export class DrawCommand {
         public bounds: Bounds;
         public xfrm: Transform;
@@ -160,15 +170,49 @@ namespace affine.Gpu {
             const top = fx.clamp(this.bounds.top, Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
             const right = fx.clamp(Fx.add(this.bounds.left, this.bounds.width), Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
             const bottom = fx.clamp(Fx.add(this.bounds.top, this.bounds.height), Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
+            const p0 = this.v0.pos;
+            const p1 = this.v1.pos;
+            const p2 = this.v2.pos;
+            const topLeft = new Vec2();
+            const topRight = new Vec2();
+            const bottomLeft = new Vec2();
+            const bottomRight = new Vec2();
+            let incY = Fx8(8);
+            // Loop over bounded pixels, rendering them.
+            for (let y = top; y < bottom; y = Fx.add(y, incY)) {
+                let incX = Fx8(8);
+                if (y > bottom) { y = bottom; }
+                for (let x = left; x < right; x = Fx.add(x, incX)) {
+                    if (x > right) { x = right; }
+                    topLeft.set(x, y);
+                    topRight.set(Fx.add(x, incX), y);
+                    bottomLeft.set(x, Fx.add(y, incY));
+                    bottomRight.set(Fx.add(x, incX), Fx.add(y, incY));
+                    if (
+                        pointInTri(p0, p1, p2, topLeft) ||
+                        pointInTri(p0, p1, p2, topRight) ||
+                        pointInTri(p0, p1, p2, bottomLeft) ||
+                        pointInTri(p0, p1, p2, bottomRight)) {
+                            this.psInner(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
+                        }
+                }
+            }
+            if (this.debug) { this.debugDraw(left, top, right, bottom); }
+        }
+
+        private psInner(left: Fx8, top: Fx8, right: Fx8, bottom: Fx8) {
+            const p0 = this.v0.pos;
+            const p1 = this.v1.pos;
+            const p2 = this.v2.pos;
             const p = new Vec2(left, top);
             // Loop over bounded pixels, rendering them.
             for (; p.y <= bottom; p.y = Fx.add(p.y, Fx.oneFx8)) {
                 const yi = Fx.toInt(p.y) + Screen.SCREEN_HALF_HEIGHT;
                 p.x = left;
                 for (; p.x <= right; p.x = Fx.add(p.x, Fx.oneFx8)) {
-                    const w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
-                    const w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
-                    const w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
+                    const w0 = Vec2.Edge(p1, p2, p);
+                    const w1 = Vec2.Edge(p2, p0, p);
+                    const w2 = Vec2.Edge(p0, p1, p);
                     if (w0 >= V1V2_EDGE_FUDGE && w1 >= V2V0_EDGE_FUDGE && w2 >= V0V1_EDGE_FUDGE) {
                         const color = this.shade(w0, w1, w2, p);
                         if (color) {
@@ -178,7 +222,6 @@ namespace affine.Gpu {
                     }
                 }
             }
-            if (this.debug) { this.debugDraw(left, top, right, bottom); }
         }
 
         public debugDraw(left: Fx8, top: Fx8, right: Fx8, bottom: Fx8) {
