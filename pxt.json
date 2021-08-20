@@ -18,7 +18,9 @@
         "sprite.ts",
         "gpu.ts",
         "bounds.ts",
-        "draw.ts"
+        "draw.ts",
+        "images.g.jres",
+        "images.g.ts"
     ],
     "testFiles": [
         "test.ts"

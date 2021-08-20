@@ -14,4 +14,6 @@ namespace affine.Screen {
     export const SCREEN_BOTTOM_FX8 = Fx8(Screen.SCREEN_BOTTOM);
     export const SCREEN_WIDTH_FX8 = Fx8(Screen.SCREEN_WIDTH);
     export const SCREEN_HEIGHT_FX8 = Fx8(Screen.SCREEN_HEIGHT);
+    export const SCREEN_HALF_WIDTH_FX8 = Fx8(Screen.SCREEN_HALF_WIDTH);
+    export const SCREEN_HALF_HEIGHT_FX8 = Fx8(Screen.SCREEN_HALF_HEIGHT);
 }

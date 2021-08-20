@@ -44,7 +44,7 @@ namespace affine.Gpu {
         public calcBounds() {
             Vec2.MinOfToRef(this.pts, this.min);
             Vec2.MaxOfToRef(this.pts, this.max);
-            this.bounds.from({ min: this.min, max: this.max });
+            this.bounds.minmax(this.min, this.max);
         }
 
         /*abstract*/ transform(index: number, xfrm: Transform): void { }
@@ -92,11 +92,14 @@ namespace affine.Gpu {
         }
     }
 
+    // The tile size for broadphase pixel discard check.
+    const COURSE_TILE_SIZE = Fx8(8);
+
     // Hand-tuned threshold for shared edge of a split rectangle. Should
     // be Fx.zeroFx8 ideally, but that results in missing pixels.
     // Math issue?
-    const V2V0_EDGE_FUDGE = Fx8(-20);
-    const V1V2_EDGE_FUDGE = Fx8(-10);
+    const V2V0_EDGE_FUDGE = Fx8(-5);
+    const V1V2_EDGE_FUDGE = Fx8(-5);
     const V0V1_EDGE_FUDGE = Fx8(-5);
 
     function pointInTri(p0: Vec2, p1: Vec2, p2: Vec2, p: Vec2): boolean {
@@ -106,6 +109,19 @@ namespace affine.Gpu {
         if (w1 < V2V0_EDGE_FUDGE) return false;
         const w2 = Vec2.Edge(p0, p1, p);
         if (w2 < V0V1_EDGE_FUDGE) return false;
+        return true;
+    }
+
+    function barycentric(p0: Vec2, p1: Vec2, p2: Vec2, p: Vec2, out: Vec3): boolean {
+        const w0 = Vec2.Edge(p1, p2, p);
+        if (w0 < V1V2_EDGE_FUDGE) return false;
+        const w1 = Vec2.Edge(p2, p0, p);
+        if (w1 < V2V0_EDGE_FUDGE) return false;
+        const w2 = Vec2.Edge(p0, p1, p);
+        if (w2 < V0V1_EDGE_FUDGE) return false;
+        out.x = w0;
+        out.y = w1;
+        out.z = w2;
         return true;
     }
 
@@ -156,54 +172,61 @@ namespace affine.Gpu {
             if (this.vs.frameId !== frameId) {
                 this.vs.frameId = frameId;
                 this.vs.exec(this.xfrm);
+                //if (this.debug) { this.debugDrawBounds(this.vs.bounds, 2); }
             }
             this.area = Vec2.Edge(this.v0.pos, this.v1.pos, this.v2.pos);
             this.vArea.set(this.area, this.area);
             Vec2.MinOfToRef(this.pts, this.min);
             Vec2.MaxOfToRef(this.pts, this.max);
-            this.bounds.from({ min: this.min, max: this.max });
+            this.bounds.minmax(this.min, this.max );
+            //if (this.debug) { this.debugDrawBounds(this.bounds, 1); }
         }
 
         public execPs(): void {
             // Get bounds of transformed vertices and clip to screen.
-            const left = fx.clamp(this.bounds.left, Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
-            const top = fx.clamp(this.bounds.top, Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
-            const right = fx.clamp(Fx.add(this.bounds.left, this.bounds.width), Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
-            const bottom = fx.clamp(Fx.add(this.bounds.top, this.bounds.height), Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
+            const gleft = fx.clamp(this.bounds.left, Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
+            const gtop = fx.clamp(this.bounds.top, Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
+            const gright = fx.clamp(Fx.add(this.bounds.left, this.bounds.width), Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
+            const gbottom = fx.clamp(Fx.add(this.bounds.top, this.bounds.height), Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
+            const gwidth = Fx.sub(gright, gleft);
+            const gheight = Fx.sub(gbottom, gtop);
             const p0 = this.v0.pos;
             const p1 = this.v1.pos;
             const p2 = this.v2.pos;
-            const topLeft = new Vec2();
-            const topRight = new Vec2();
-            const bottomLeft = new Vec2();
-            const bottomRight = new Vec2();
-            let incY = Fx8(32);
-            // Loop over bounded pixels, rendering them.
-            for (let y = top; y < bottom; y = Fx.add(y, incY)) {
-                let incX = Fx8(32);
-                if (y > bottom) {
-                    incY = fx.mod(bottom, incY);
-                    y = bottom;
-                }
-                for (let x = left; x < right; x = Fx.add(x, incX)) {
-                    if (x > right) {
-                        incX = fx.mod(right, incX);
-                        x = right;
+            const tl = new Vec2();
+            const tr = new Vec2();
+            const bl = new Vec2();
+            const br = new Vec2();
+            // Loop over bounded pixels, broadphase filter, and render.
+            for (let y = gtop; y < gbottom; y = Fx.add(y, COURSE_TILE_SIZE)) {
+                const ctop = y;
+                let cbottom = Fx.add(ctop, COURSE_TILE_SIZE);
+                if (cbottom > gbottom) cbottom = gbottom;
+                for (let x = gleft; x < gright; x = Fx.add(x, COURSE_TILE_SIZE)) {
+                    const cleft = x;
+                    let cright = Fx.add(cleft, COURSE_TILE_SIZE);
+                    if (cright > gright) cright = gright;
+                    tl.set(cleft, ctop);
+                    tr.set(cright, ctop);
+                    bl.set(cleft, cbottom);
+                    br.set(cright, cbottom);
+                    if (pointInTri(p0, p1, p2, tl) ||
+                        pointInTri(p0, p1, p2, tr) ||
+                        pointInTri(p0, p1, p2, bl) ||
+                        pointInTri(p0, p1, p2, br)) {
+                        this.psInner(
+                            tl.x,
+                            tl.y,
+                            br.x,
+                            br.y);
+                        //if (this.debug) { this.debugDrawBox(cleft, ctop, cright, cbottom, 7); }
+                    } else {
+                        //if (this.debug) { this.debugDrawBox(cleft, ctop, cright, cbottom, 2); }
                     }
-                    topLeft.set(x, y);
-                    topRight.set(Fx.add(x, incX), y);
-                    bottomLeft.set(x, Fx.add(y, incY));
-                    bottomRight.set(Fx.add(x, incX), Fx.add(y, incY));
-                    if (
-                        pointInTri(p0, p1, p2, topLeft) ||
-                        pointInTri(p0, p1, p2, topRight) ||
-                        pointInTri(p0, p1, p2, bottomLeft) ||
-                        pointInTri(p0, p1, p2, bottomRight)) {
-                            this.psInner(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
-                        }
                 }
             }
-            if (this.debug) { this.debugDraw(left, top, right, bottom); }
+            //if (this.debug) { this.debugDrawVerts(15); }
+            //if (this.debug) { this.debugDrawBox(gleft, gtop, gright, gbottom, 1); }
         }
 
         private psInner(left: Fx8, top: Fx8, right: Fx8, bottom: Fx8) {
@@ -211,16 +234,14 @@ namespace affine.Gpu {
             const p1 = this.v1.pos;
             const p2 = this.v2.pos;
             const p = new Vec2(left, top);
+            const bary = new Vec3();
             // Loop over bounded pixels, rendering them.
             for (; p.y <= bottom; p.y = Fx.add(p.y, Fx.oneFx8)) {
                 const yi = Fx.toInt(p.y) + Screen.SCREEN_HALF_HEIGHT;
                 p.x = left;
                 for (; p.x <= right; p.x = Fx.add(p.x, Fx.oneFx8)) {
-                    const w0 = Vec2.Edge(p1, p2, p);
-                    const w1 = Vec2.Edge(p2, p0, p);
-                    const w2 = Vec2.Edge(p0, p1, p);
-                    if (w0 >= V1V2_EDGE_FUDGE && w1 >= V2V0_EDGE_FUDGE && w2 >= V0V1_EDGE_FUDGE) {
-                        const color = this.shade(w0, w1, w2, p);
+                    if (barycentric(p0, p1, p2, p, bary)) {
+                        const color = this.shade(bary.x, bary.y, bary.z, p);
                         if (color) {
                             const xi = Fx.toInt(p.x) + Screen.SCREEN_HALF_WIDTH;
                             screen.setPixel(xi, yi, color);
@@ -230,13 +251,33 @@ namespace affine.Gpu {
             }
         }
 
-        public debugDraw(left: Fx8, top: Fx8, right: Fx8, bottom: Fx8) {
+        public debugDrawBounds(bounds: Bounds, color: number) {
+            this.debugDrawBox(
+                bounds.left,
+                bounds.top,
+                Fx.add(bounds.left, bounds.width),
+                Fx.add(bounds.top, bounds.height),
+                color);
+        }
+
+        public debugDrawBox(left: Fx8, top: Fx8, right: Fx8, bottom: Fx8, color: number) {
+            left = Fx.add(left, Screen.SCREEN_HALF_WIDTH_FX8);
+            top = Fx.add(top, Screen.SCREEN_HALF_HEIGHT_FX8);
+            right = Fx.add(right, Screen.SCREEN_HALF_WIDTH_FX8);
+            bottom = Fx.add(bottom, Screen.SCREEN_HALF_HEIGHT_FX8);
+            drawLine(screen, left, top, right, top, color);
+            drawLine(screen, right, top, right, bottom, color);
+            drawLine(screen, right, bottom, left, bottom, color);
+            drawLine(screen, left, bottom, left, top, color);
+        }
+
+        public debugDrawVerts(color: number) {
             const p0 = Vec2.AddToRef(this.v0.pos, Screen.SCREEN_HALF_SIZE, new Vec2());
             const p1 = Vec2.AddToRef(this.v1.pos, Screen.SCREEN_HALF_SIZE, new Vec2());
             const p2 = Vec2.AddToRef(this.v2.pos, Screen.SCREEN_HALF_SIZE, new Vec2());
-            affine.drawLine(screen, p0, p1, 15);
-            affine.drawLine(screen, p1, p2, 15);
-            affine.drawLine(screen, p2, p0, 15);
+            drawLineFromPts(screen, p0, p1, color);
+            drawLineFromPts(screen, p1, p2, color);
+            drawLineFromPts(screen, p2, p0, color);
         }
 
         public shade(w0: Fx8, w1: Fx8, w2: Fx8, /* const */p: Vec2): number {

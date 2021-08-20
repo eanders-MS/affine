@@ -50,7 +50,7 @@ namespace affine {
 
         public get localScl() { return this.localScl_; }
         public set localScl(v: Vec2) {
-            this.localScl.copyFrom(v);
+            this.localScl_.copyFrom(v);
             this.dirty_ = true;
         }
 

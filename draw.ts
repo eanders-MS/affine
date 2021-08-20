@@ -1,9 +1,13 @@
 namespace affine {
-    export function drawLine(img: Image, p0: Vec2, p1: Vec2, color: number) {
-        let x0 = fx.floor(p0.x);
-        let y0 = fx.floor(p0.y);
-        const x1 = fx.floor(p1.x);
-        const y1 = fx.floor(p1.y);
+    export function drawLineFromPts(img: Image, p0: Vec2, p1: Vec2, color: number) {
+        drawLine(img, p0.x, p0.y, p1.x, p1.y, color);
+    }
+
+    export function drawLine(img: Image, x0: Fx8, y0: Fx8, x1: Fx8, y1: Fx8, color: number) {
+        x0 = fx.floor(x0);
+        y0 = fx.floor(y0);
+        x1 = fx.floor(x1);
+        y1 = fx.floor(y1);
         const dx = Fx.abs(Fx.sub(x1, x0));
         const sx = x0 < x1 ? Fx.oneFx8 : Fx8(-1);
         const dy = Fx.neg(Fx.abs(Fx.sub(y1, y0)));
