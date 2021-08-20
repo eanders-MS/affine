@@ -95,12 +95,12 @@ namespace affine.Gpu {
     // The tile size for broadphase pixel discard check.
     const COURSE_TILE_SIZE = Fx8(8);
 
-    // Hand-tuned threshold for shared edge of a split rectangle. Should
+    // Hand-tuned threshold for whether a point is in triangle. Should
     // be Fx.zeroFx8 ideally, but that results in missing pixels.
-    // Math issue?
-    const V2V0_EDGE_FUDGE = Fx8(-5);
-    const V1V2_EDGE_FUDGE = Fx8(-5);
-    const V0V1_EDGE_FUDGE = Fx8(-5);
+    // Math issue? Fixed point edge cases?
+    const V2V0_EDGE_FUDGE = Fx8(-10);
+    const V1V2_EDGE_FUDGE = Fx8(-10);
+    const V0V1_EDGE_FUDGE = Fx8(-10);
 
     function pointInTri(p0: Vec2, p1: Vec2, p2: Vec2, p: Vec2): boolean {
         const w0 = Vec2.Edge(p1, p2, p);

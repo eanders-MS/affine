@@ -1,3 +1,4 @@
+// WAVY DINO TEST
 /*
 class WavyVertexShader extends affine.Gpu.VertexShader {
     dim: Fx8;
@@ -17,7 +18,7 @@ class WavyVertexShader extends affine.Gpu.VertexShader {
     }
 }
 
-class Scene extends affine.Scene {
+class TestScene extends affine.Scene {
     sprite: affine.MeshSprite;
     scale: number;
 
@@ -81,5 +82,34 @@ class Scene extends affine.Scene {
     }
 }
 
-affine.Scene.pushScene(new Scene());
+affine.Scene.pushScene(new TestScene());
+*/
+
+// DUCK TEST
+/*
+class TestScene extends affine.Scene {
+    sprite: affine.ImageSprite;
+
+    constructor() {
+        super();
+        this.sprite = new affine.ImageSprite(this, helpers.getImageByName("_test_duck"));
+        this.sprite.xfrm.localScl = new affine.Vec2(Fx8(1.5), Fx8(1.5));
+    }
+
+    startup() {
+        controller.setRepeatDefault(1, 1);
+        controller.up.onEvent(ControllerButtonEvent.Pressed, () => {
+            this.sprite.xfrm.localRot += 1;
+        });
+        controller.down.onEvent(ControllerButtonEvent.Pressed, () => {
+            this.sprite.xfrm.localRot -= 1;
+        });
+    }
+
+    draw() {
+        this.sprite.draw();
+    }
+}
+
+affine.Scene.pushScene(new TestScene());
 */
