@@ -111,7 +111,7 @@ namespace affine {
             hVertStep: number,
             vVertStep: number,
             vs: (inp: Vertex, out: Vertex, xfrm: affine.Transform) => void,
-            ps: () => number) {
+            ps: (pos: Vec2, uv: Vec2) => number) {
             super(scene);
             hVertCount = Math.max(2, hVertCount);
             vVertCount = Math.max(2, vVertCount);
