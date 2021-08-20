@@ -84,6 +84,8 @@ namespace affine {
             this.ps = ps();
             this.tri0 = new Gpu.DrawCommand(this.vs, this.ps, SPRITE_TRI0_INDICES);
             this.tri1 = new Gpu.DrawCommand(this.vs, this.ps, SPRITE_TRI1_INDICES);
+            this.tri0.debugColor = 5;
+            this.tri1.debugColor = 6;
         }
 
         /*override*/ draw() {

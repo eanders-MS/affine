@@ -1,5 +1,13 @@
 namespace affine {
     export class Bounds {
+
+        public get right() { return Fx.add(this.left, this.width); }
+        public set right(v: Fx8) { this.width = Fx.sub(v, this.left); }
+        public get bottom() { return Fx.add(this.top, this.height); }
+        public set bottom(v: Fx8) { this.height = Fx.sub(v, this.top); }
+        public get min() { return Fx.min(this.width, this.height); }
+        public get max() { return Fx.max(this.width, this.height); }
+
         constructor(
             public left: Fx8,
             public top: Fx8,
