@@ -42,19 +42,21 @@ namespace affine {
      */
 
     export class QuadSprite extends Sprite {
+        verts: Vertex[];
+        vs: Gpu.VertexShader;
+        ps: Gpu.PixelShader;
         tri0: Gpu.DrawCommand;
         tri1: Gpu.DrawCommand;
-        bounds: Bounds;
 
-        public get width() { return this.bounds ? this.bounds.width : Fx.zeroFx8; }
-        public get height() { return this.bounds ? this.bounds.height : Fx.zeroFx8; }
+        public get width() { return this.vs.bounds.width; }
+        public get height() { return this.vs.bounds.height; }
 
         constructor(
             scene: Scene,
             width: number,
             height: number,
-            vs: (inp: Vertex, out: Vertex, xfrm: affine.Transform) => void,
-            ps: (pos: Vec2, uv: Vec2) => number) {
+            vs: (src: Vertex[]) => Gpu.VertexShader,
+            ps: () => Gpu.PixelShader) {
             super(scene);
             const left = Fx8(-(width >> 1));
             const right = Fx8(width >> 1);
@@ -72,14 +74,16 @@ namespace affine {
                 new Vec2(Fx.oneFx8, Fx.oneFx8),
                 new Vec2(Fx.zeroFx8, Fx.oneFx8),
             ];
-            const verts = [
+            this.verts = [
                 new Vertex(pts[0], uvs[0], true),
                 new Vertex(pts[1], uvs[1], true),
                 new Vertex(pts[2], uvs[2], true),
                 new Vertex(pts[3], uvs[3], true),
             ];
-            this.tri0 = new Gpu.DrawCommand(verts, vs, ps, (bounds) => this.boundsSetter(bounds), SPRITE_TRI0_INDICES);
-            this.tri1 = new Gpu.DrawCommand(verts, vs, ps, (bounds) => this.boundsSetter(bounds), SPRITE_TRI1_INDICES);
+            this.vs = vs(this.verts);
+            this.ps = ps();
+            this.tri0 = new Gpu.DrawCommand(this.vs, this.ps, SPRITE_TRI0_INDICES);
+            this.tri1 = new Gpu.DrawCommand(this.vs, this.ps, SPRITE_TRI1_INDICES);
         }
 
         /*override*/ draw() {
@@ -88,18 +92,16 @@ namespace affine {
             this.tri0.enqueue();
             this.tri1.enqueue();
         }
-
-        private boundsSetter(bounds: Bounds) {
-            this.bounds = bounds;
-        }
     }
 
     export class MeshSprite extends affine.Sprite {
+        verts: affine.Vertex[];
+        vs: affine.Gpu.VertexShader;
+        ps: affine.Gpu.PixelShader;
         cmds: affine.Gpu.DrawCommand[];
-        bounds: Bounds;
 
-        public get width() { return this.bounds ? this.bounds.width : Fx.zeroFx8; }
-        public get height() { return this.bounds ? this.bounds.height : Fx.zeroFx8; }
+        public get width() { return this.vs.bounds.width; }
+        public get height() { return this.vs.bounds.height; }
 
         public get debug() { return this.cmds[0].debug; }
         public set debug(v) { this.cmds.forEach(cmd => cmd.debug = v); }
@@ -110,8 +112,8 @@ namespace affine {
             vVertCount: number,
             hVertStep: number,
             vVertStep: number,
-            vs: (inp: Vertex, out: Vertex, xfrm: affine.Transform) => void,
-            ps: () => number) {
+            vs: (src: affine.Vertex[]) => affine.Gpu.VertexShader,
+            ps: () => affine.Gpu.PixelShader) {
             super(scene);
             hVertCount = Math.max(2, hVertCount);
             vVertCount = Math.max(2, vVertCount);
@@ -123,24 +125,26 @@ namespace affine {
             const halfHeight = height >> 1;
             const uUvStep = hVertStep / width;
             const vUvStep = vVertStep / height;
-            const verts = [];
+            this.verts = [];
             for (let vIdx = 0, vPos = -halfHeight, vUv = 0; vIdx < vVertCount; ++vIdx, vPos += vVertStep, vUv += vUvStep) {
                 for (let hIdx = 0, hPos = -halfWidth, uUv = 0; hIdx < hVertCount; ++hIdx, hPos += hVertStep, uUv += uUvStep) {
                     const iVert = vIdx * hVertCount + hIdx;
-                    verts[iVert] = new affine.Vertex(
+                    this.verts[iVert] = new affine.Vertex(
                         affine.Vec2.N(hPos, vPos),
                         affine.Vec2.N(uUv, vUv)
                     );
                 }
             }
+            this.vs = vs(this.verts);
+            this.ps = ps();
             this.cmds = [];
             for (let vIdx = 0; vIdx < vVertCount - 1; ++vIdx) {
                 for (let hIdx = 0; hIdx < hVertCount - 1; ++hIdx) {
                     const iVert = vIdx * hVertCount + hIdx;
                     const tri0 = [iVert, iVert + hVertCount, iVert + hVertCount + 1];
                     const tri1 = [iVert + hVertCount + 1, iVert + 1, iVert];
-                    this.cmds.push(new affine.Gpu.DrawCommand(verts, vs, ps, (bounds) => this.boundsSetter(bounds), tri0));
-                    this.cmds.push(new affine.Gpu.DrawCommand(verts, vs, ps, (bounds) => this.boundsSetter(bounds), tri1));
+                    this.cmds.push(new affine.Gpu.DrawCommand(this.vs, this.ps, tri0));
+                    this.cmds.push(new affine.Gpu.DrawCommand(this.vs, this.ps, tri1));
                 }
             }
         }
@@ -149,32 +153,16 @@ namespace affine {
             this.cmds.forEach(cmd => cmd.xfrm = this.xfrm);
             this.cmds.forEach(cmd => cmd.enqueue());
         }
-
-        private boundsSetter(bounds: Bounds) {
-            this.bounds = bounds;
-        }
     }
 
     export class ImageSprite extends QuadSprite {
-        private imgWidth: Fx8;
-        private imgHeight: Fx8;
-
-        constructor(scene: Scene, private img: Image) {
+        constructor(scene: Scene, protected img: Image) {
             super(
                 scene,
                 img.width,
                 img.height,
-                Gpu.basicVS,
-                (pos, uv) => this.shade(pos, uv));
-            this.imgWidth = Fx8(img.width - 1);
-            this.imgHeight = Fx8(img.height - 1);
-        }
-
-        private shade(pos: Vec2, uv: Vec2): number {
-            // Sample texture at uv.
-            const x = Fx.toInt(Fx.mul(uv.u, this.imgWidth));
-            const y = Fx.toInt(Fx.mul(uv.v, this.imgHeight));
-            return this.img.getPixel(x, y);
+                (src: Vertex[]) => new Gpu.BasicVertexShader(src),
+                () => new Gpu.TexturedPixelShader(img));
         }
     }
 }

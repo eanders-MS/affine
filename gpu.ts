@@ -24,7 +24,7 @@ namespace affine.Gpu {
     let frameId = 0;
     let commands: DrawCommand[] = [];
 
-    class VertexShader {
+    export class VertexShader {
         public frameId: number;
         public verts: Vertex[];
         public bounds: Bounds;
@@ -32,7 +32,7 @@ namespace affine.Gpu {
         min: Vec2;
         max: Vec2;
 
-        constructor(private src: Vertex[], private fn: (inp: Vertex, out: Vertex, xfrm: affine.Transform) => void) {
+        constructor(protected src: Vertex[]) {
             this.frameId = -1;
             this.verts = src.map(v => v.clone());
             this.pts = this.verts.map(v => v.pos);
@@ -47,21 +47,34 @@ namespace affine.Gpu {
             this.bounds.from({ min: this.min, max: this.max });
         }
 
+        /*abstract*/ transform(index: number, xfrm: Transform): void { }
+
         public exec(xfrm: Transform) {
             for (let i = 0; i < this.src.length; ++i) {
-                const src = this.src[i];
-                const dst = this.verts[i];
-                this.fn(src, dst, xfrm);
+                this.transform(i, xfrm);
             }
             this.calcBounds();
         }
     }
 
-    export function basicVS(inp: Vertex, out: Vertex, xfrm: affine.Transform): void {
-        xfrm.transformToRef(inp.pos, out.pos);
+    export class BasicVertexShader extends VertexShader {
+        public transform(index: number, xfrm: Transform): void {
+            const src = this.src[index];
+            const dst = this.verts[index];
+            xfrm.transformToRef(src.pos, dst.pos);
+        }
     }
 
-    /*
+    export class PixelShader {
+        constructor() { }
+        /**
+         * @p the screen space pixel coordinate
+         * @uv the texture coordinates at p
+         * @returns color index for pixel
+         */
+        /*abstract*/ shade(p: Vec2, uv: Vec2): number { return 0; }
+    }
+
     export class TexturedPixelShader extends PixelShader {
         // TODO: Support texture wrapping modes
         texWidth: Fx8;
@@ -78,7 +91,6 @@ namespace affine.Gpu {
             return this.tex.getPixel(x, y);
         }
     }
-    */
 
     // Hand-tuned threshold for shared edge of a split rectangle. Should
     // be Fx.zeroFx8 ideally, but that results in missing pixels.
@@ -89,7 +101,6 @@ namespace affine.Gpu {
         public bounds: Bounds;
         public xfrm: Transform;
         public debug: boolean;
-        private vs: VertexShader;
         // Cached and computed values
         private area: Fx8;
         private vArea: Vec2;
@@ -106,13 +117,10 @@ namespace affine.Gpu {
         private uv: Vec2;
 
         constructor(
-            src: Vertex[],
-            private vsfn: (inp: Vertex, out: Vertex, xfrm: affine.Transform) => void,
-            private psfn: (pos: Vec2, uv: Vec2) => number,
-            private boundsReporter: (bounds: Bounds) => void,
+            public vs: VertexShader,
+            public ps: PixelShader,
             public tri: number[]
         ) {
-            this.vs = new VertexShader(src, vsfn);
             this.bounds = Bounds.Zero();
             this.v0 = this.vs.verts[this.tri[0]];
             this.v1 = this.vs.verts[this.tri[1]];
@@ -142,7 +150,6 @@ namespace affine.Gpu {
             Vec2.MinOfToRef(this.pts, this.min);
             Vec2.MaxOfToRef(this.pts, this.max);
             this.bounds.from({ min: this.min, max: this.max });
-            this.boundsReporter(this.bounds);
         }
 
         public execPs(): void {
@@ -152,12 +159,11 @@ namespace affine.Gpu {
             const right = fx.clamp(Fx.add(this.bounds.left, this.bounds.width), Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
             const bottom = fx.clamp(Fx.add(this.bounds.top, this.bounds.height), Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
             const p = new Vec2(left, top);
-            // Loop over bounded pixels, rendering them
+            // Loop over bounded pixels, rendering them.
             for (; p.y <= bottom; p.y = Fx.add(p.y, Fx.oneFx8)) {
                 const yi = Fx.toInt(p.y) + Screen.SCREEN_HALF_HEIGHT;
                 p.x = left;
                 for (; p.x <= right; p.x = Fx.add(p.x, Fx.oneFx8)) {
-                    // TODO: Optimize this
                     const w0 = Vec2.Edge(this.v1.pos, this.v2.pos, p);
                     const w1 = Vec2.Edge(this.v2.pos, this.v0.pos, p);
                     const w2 = Vec2.Edge(this.v0.pos, this.v1.pos, p);
@@ -170,7 +176,7 @@ namespace affine.Gpu {
                     }
                 }
             }
-            if (this.debug) { this.debugDraw(left, top, right, bottom); }
+            if (this.debug) this.debugDraw(left, top, right, bottom);
         }
 
         public debugDraw(left: Fx8, top: Fx8, right: Fx8, bottom: Fx8) {
@@ -184,25 +190,25 @@ namespace affine.Gpu {
 
         public shade(w0: Fx8, w1: Fx8, w2: Fx8, /* const */p: Vec2): number {
             // Get uv coordinates at barycentric point
-            // TODO: Support different texture wrapping modes
+            // TODO: Support different texture wrapping modes.
             Vec2.ScaleToRef(this.v0.uv, w0, this.uv0);
             Vec2.ScaleToRef(this.v1.uv, w1, this.uv1);
             Vec2.ScaleToRef(this.v2.uv, w2, this.uv2);
             Vec2.AddToRef(Vec2.AddToRef(this.uv0, this.uv1, this.uv), this.uv2, this.uv);
             Vec2.DivToRef(this.uv, this.vArea, this.uv);
 
-            return this.psfn(p, this.uv);
+            return this.ps.shade(p, this.uv);
         }
     }
 
     export function exec() {
         ++frameId;
-        // Run vertex shaders
+        // Run vertex shaders.
         for (let i = 0; i < commands.length; ++i) {
             const cmd = commands[i];
             cmd.execVs(frameId);
         }
-        // Run pixel shaders
+        // Run pixel shaders.
         for (let i = 0; i < commands.length; ++i) {
             const cmd = commands[i];
             cmd.execPs();
