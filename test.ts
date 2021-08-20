@@ -93,16 +93,30 @@ class TestScene extends affine.Scene {
     constructor() {
         super();
         this.sprite = new affine.ImageSprite(this, helpers.getImageByName("_test_duck"));
-        this.sprite.xfrm.localScl = new affine.Vec2(Fx8(2.5), Fx8(2.5));
+        this.sprite.xfrm.localScl = new affine.Vec2(Fx8(3), Fx8(3));
     }
 
     startup() {
         controller.setRepeatDefault(1, 1);
-        controller.up.onEvent(ControllerButtonEvent.Pressed, () => {
+        controller.left.onEvent(ControllerButtonEvent.Pressed, () => {
             this.sprite.xfrm.localRot += 1;
         });
-        controller.down.onEvent(ControllerButtonEvent.Pressed, () => {
+        controller.left.onEvent(ControllerButtonEvent.Repeated, () => {
+            this.sprite.xfrm.localRot += 1;
+        });
+        controller.right.onEvent(ControllerButtonEvent.Pressed, () => {
             this.sprite.xfrm.localRot -= 1;
+        });
+        controller.right.onEvent(ControllerButtonEvent.Repeated, () => {
+            this.sprite.xfrm.localRot -= 1;
+        });
+        controller.up.onEvent(ControllerButtonEvent.Pressed, () => {
+            const scale = Fx.add(this.sprite.xfrm.localScl.x, Fx.oneFx8);
+            this.sprite.xfrm.localScl = new affine.Vec2(scale, scale);
+        });
+        controller.down.onEvent(ControllerButtonEvent.Pressed, () => {
+            const scale = Fx.max(Fx.oneFx8, Fx.sub(this.sprite.xfrm.localScl.x, Fx.oneFx8));
+            this.sprite.xfrm.localScl = new affine.Vec2(scale, scale);
         });
     }
 

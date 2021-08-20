@@ -185,11 +185,11 @@ namespace affine.Gpu {
             this.gbounds.top = fx.clamp(this.bounds.top, Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
             this.gbounds.right = fx.clamp(this.bounds.right, Screen.SCREEN_LEFT_FX8, Screen.SCREEN_RIGHT_FX8);
             this.gbounds.bottom = fx.clamp(this.bounds.bottom, Screen.SCREEN_TOP_FX8, Screen.SCREEN_BOTTOM_FX8);
-            const broadphaseSize = Fx.max(Fx.oneFx8, fx.floor(Fx.div(this.gbounds.min, Fx8(7))));
-            const fudge = Fx.neg(Fx.mul(broadphaseSize, Fx8(4)));
-            //const fudge = Fx.zeroFx8;
+            const broadphaseSize = Fx.max(Fx.oneFx8, fx.floor(Fx.div(this.gbounds.min, Fx8(4))));
+            const fudge = Fx.neg(Fx.mul(broadphaseSize, Fx8(2)));
+            //const fudge = Fx.zeroFx8; // ideally...
             if (broadphaseSize < Fx8(4)) {
-                // Broadphase not worth the cost at this small scale
+                // Broadphase not worth the cost at small scale
                 this.psInner(this.gbounds, fudge);
             } else {
                 // Broadphase filter and render
@@ -200,39 +200,42 @@ namespace affine.Gpu {
                 const tr = new Vec2();
                 const bl = new Vec2();
                 const br = new Vec2();
-                for (let y = this.gbounds.top; y <= this.gbounds.bottom; y = Fx.add(y, broadphaseSize)) {
+                for (let y = this.gbounds.top; y < this.gbounds.bottom; y = Fx.add(y, broadphaseSize)) {
                     this.cbounds.top = y;
                     this.cbounds.height = broadphaseSize;
-                    if (this.cbounds.bottom > this.gbounds.bottom) { this.cbounds.bottom = this.cbounds.bottom; }
-                    for (let x = this.gbounds.left; x <= this.gbounds.right; x = Fx.add(x, broadphaseSize)) {
+                    if (this.cbounds.bottom > this.gbounds.bottom) { this.cbounds.bottom = this.gbounds.bottom; }
+                    let drawn = false;
+                    for (let x = this.gbounds.left; x < this.gbounds.right; x = Fx.add(x, broadphaseSize)) {
                         this.cbounds.left = x;
                         this.cbounds.width = broadphaseSize;
                         if (this.cbounds.right > this.gbounds.right) { this.cbounds.right = this.gbounds.right; }
-                        tl.set(this.cbounds.left, this.cbounds.top);
-                        tr.set(this.cbounds.right, this.cbounds.top);
-                        bl.set(this.cbounds.left, this.cbounds.bottom);
-                        br.set(this.cbounds.right, this.cbounds.bottom);
-                        const inTri =
-                            pointInTri(p0, p1, p2, tl, fudge) ||
-                            pointInTri(p0, p1, p2, tr, fudge) ||
-                            pointInTri(p0, p1, p2, bl, fudge) ||
-                            pointInTri(p0, p1, p2, br, fudge);
+                        // If the filter box is too small, don't try to filter
+                        const tinyPhase = this.cbounds.max < Fx8(4);
+                        // Filter box in triangle?
+                        const inTri = tinyPhase ||
+                            pointInTri(p0, p1, p2, tl.set(this.cbounds.left, this.cbounds.top), fudge) ||
+                            pointInTri(p0, p1, p2, tr.set(this.cbounds.right, this.cbounds.top), fudge) ||
+                            pointInTri(p0, p1, p2, bl.set(this.cbounds.left, this.cbounds.bottom), fudge) ||
+                            pointInTri(p0, p1, p2, br.set(this.cbounds.right, this.cbounds.bottom), fudge);
+                        // Triangle vertex in filter box?
                         const inside =
                             inTri ||
                             this.cbounds.contains(p0) ||
                             this.cbounds.contains(p1) ||
                             this.cbounds.contains(p2);
                         if (inside) {
+                            drawn = true;
                             this.psInner(this.cbounds, fudge);
-                            //this.debugDrawBox(cleft, ctop, cright, cbottom, 7);
+                            //this.debugDrawBounds(this.cbounds, 16 - this.debugColor);
                         } else {
-                            this.psInner(this.cbounds, fudge, 15);
+                            if (drawn) { break; }
+                            //this.psInner(this.cbounds, fudge, 15);
                             //this.debugDrawBounds(this.cbounds, this.debugColor);
                         }
                     }
                 }
             }
-            if (this.debug) { this.debugDrawVerts(15); }
+            if (this.debug) { this.debugDrawVerts(this.debugColor); }
             //if (this.debug) { this.debugDrawBox(gleft, gtop, gright, gbottom, 1); }
         }
 
