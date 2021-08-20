@@ -181,9 +181,15 @@ namespace affine.Gpu {
             // Loop over bounded pixels, rendering them.
             for (let y = top; y < bottom; y = Fx.add(y, incY)) {
                 let incX = Fx8(8);
-                if (y > bottom) { y = bottom; }
+                if (y > bottom) {
+                    incY = fx.mod(bottom, incY);
+                    y = bottom;
+                }
                 for (let x = left; x < right; x = Fx.add(x, incX)) {
-                    if (x > right) { x = right; }
+                    if (x > right) {
+                        incX = fx.mod(right, incX);
+                        x = right;
+                    }
                     topLeft.set(x, y);
                     topRight.set(Fx.add(x, incX), y);
                     bottomLeft.set(x, Fx.add(y, incY));
