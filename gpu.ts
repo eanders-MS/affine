@@ -24,6 +24,8 @@ namespace affine.Gpu {
     let frameId = 0;
     let commands: DrawCommand[] = [];
 
+    export let broadphaseDebug = false;
+
     export class VertexShader {
         public frameId: number;
         public verts: Vertex[];
@@ -218,24 +220,27 @@ namespace affine.Gpu {
                             pointInTri(p0, p1, p2, bl.set(this.cbounds.left, this.cbounds.bottom), fudge) ||
                             pointInTri(p0, p1, p2, br.set(this.cbounds.right, this.cbounds.bottom), fudge);
                         // Triangle vertex in filter box?
-                        const inside =
+                        const inBox =
                             inTri ||
                             this.cbounds.contains(p0) ||
                             this.cbounds.contains(p1) ||
                             this.cbounds.contains(p2);
-                        if (inside) {
+                        if (inBox) {
                             drawn = true;
                             this.psInner(this.cbounds, fudge);
                             //this.debugDrawBounds(this.cbounds, 16 - this.debugColor);
                         } else {
-                            if (drawn) { break; }
-                            //this.psInner(this.cbounds, fudge, 15);
-                            //this.debugDrawBounds(this.cbounds, this.debugColor);
+                            if (broadphaseDebug) {
+                                this.psInner(this.cbounds, fudge, 15);
+                                this.debugDrawBounds(this.cbounds, this.debugColor);
+                            } else if (drawn) {
+                                break;
+                            }
                         }
                     }
                 }
             }
-            if (this.debug) { this.debugDrawVerts(this.debugColor); }
+            if (this.debug) { this.debugDrawVerts(15); }
             //if (this.debug) { this.debugDrawBox(gleft, gtop, gright, gbottom, 1); }
         }
 

@@ -94,6 +94,7 @@ class TestScene extends affine.Scene {
         super();
         this.sprite = new affine.ImageSprite(this, helpers.getImageByName("_test_duck"));
         this.sprite.xfrm.localScl = new affine.Vec2(Fx8(3), Fx8(3));
+        this.sprite.debug = true;
     }
 
     startup() {
@@ -125,5 +126,6 @@ class TestScene extends affine.Scene {
     }
 }
 
+affine.Gpu.broadphaseDebug = true;
 affine.Scene.pushScene(new TestScene());
 */

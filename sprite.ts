@@ -51,6 +51,9 @@ namespace affine {
         public get width() { return this.vs.bounds.width; }
         public get height() { return this.vs.bounds.height; }
 
+        public get debug() { return this.tri0.debug; }
+        public set debug(v) { [this.tri0, this.tri1].forEach(tri => tri.debug = v); }
+
         constructor(
             scene: Scene,
             width: number,
